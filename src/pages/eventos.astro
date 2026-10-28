@@ -6,11 +6,26 @@ import Icon from '../components/Icon.astro';
 import ShowCard from '../components/ShowCard.astro';
 import { partes, termina, clp } from '../lib/format';
 
-const { shows, karaoke, links } = Astro.locals.content!;
+const { shows, karaoke, links, artistas } = Astro.locals.content!;
 
 const proximos = shows.filter((s) => termina(s.fecha) > Date.now());
 const pasados = shows.filter((s) => termina(s.fecha) <= Date.now());
 const siguiente = proximos[0];
+
+// Los shows que ya ocurrieron (del más reciente) y luego los artistas cargados en el panel, sin repetir
+type Paso = { nombre: string; detalle?: string; foto?: string; link?: string };
+const vistos = new Set<string>();
+const pasaron: Paso[] = [
+  ...pasados.toReversed().map((s) => ({
+    nombre: s.artista,
+    detalle: `${s.subtitulo ? s.subtitulo + ' · ' : ''}${partes(s.fecha).dia} de ${partes(s.fecha).mes}`,
+    foto: s.poster,
+  })),
+  ...artistas.map((a) => ({ nombre: a.nombre, detalle: [a.que, a.cuando].filter(Boolean).join(' · ') || undefined, foto: a.foto, link: a.link })),
+].filter((p) => {
+  const k = p.nombre.trim().toLowerCase();
+  return vistos.has(k) ? false : (vistos.add(k), true);
+});
 const final = karaoke.jornadas.at(-1);
 const fFinal = final ? partes(final.fecha) : null;
 const premio = karaoke.premios[0];
@@ -118,24 +133,41 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
     )}
 
     {
-      pasados.length > 0 && (
+      pasaron.length > 0 && (
         <section class="past" aria-labelledby="past-t">
           <div class="wrap">
-            <h2 id="past-t" class="past__t" data-reveal>
-              Ya pasaron por la casona
-            </h2>
+            <div class="past__head">
+              <span class="eyebrow" data-reveal>Nuestro escenario</span>
+              <h2 id="past-t" data-reveal style="--d:80ms">
+                Ya pasaron por la casona
+              </h2>
+            </div>
             <ul class="past__list">
-              {pasados.map((s, i) => (
-                <li data-reveal style={`--d:${i * 80}ms`}>
-                  <img src={s.poster} alt={`Afiche de ${s.artista}`} loading="lazy" width="800" height="800" />
-                  <span>
-                    {s.artista}
-                    <small>
-                      {partes(s.fecha).dia} de {partes(s.fecha).mes}
-                    </small>
-                  </span>
-                </li>
-              ))}
+              {pasaron.map((p, i) => {
+                const Tag = p.link ? 'a' : 'div';
+                return (
+                  <li data-reveal style={`--d:${Math.min(i, 8) * 60}ms`}>
+                    <Tag class="past__item" {...(p.link ? { href: p.link, target: '_blank', rel: 'noopener' } : {})}>
+                      {p.foto ? (
+                        <img src={p.foto} alt="" loading="lazy" decoding="async" width="160" height="160" />
+                      ) : (
+                        <span class="past__mono" aria-hidden="true">
+                          {p.nombre
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((w) => w[0])
+                            .join('')}
+                        </span>
+                      )}
+                      <span class="past__name">
+                        {p.nombre}
+                        {p.detalle && <small>{p.detalle}</small>}
+                      </span>
+                      {p.link && <Icon name="arrow-up-right" size={18} class="past__go" />}
+                    </Tag>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </section>
@@ -456,43 +488,121 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
     }
   }
 
-  /* Pasados */
+  /* Ya pasaron por la casona */
   .past {
     padding-block: var(--s-800);
+    border-top: 1px solid var(--line);
   }
-  .past__t {
-    font-size: 1.5rem;
-    line-height: 2rem;
+  .past__head > * + * {
+    margin-top: var(--s-200);
+  }
+  .past__head h2 {
+    font-size: 2.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
   }
   .past__list {
-    display: flex;
-    gap: var(--s-300);
-    margin: var(--s-300) 0 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: var(--s-500) 0 0;
     padding: 0;
     list-style: none;
-    overflow-x: auto;
   }
-  .past__list li {
-    flex: none;
+  .past__item {
     display: flex;
     align-items: center;
     gap: var(--s-200);
+    padding: var(--s-200) 0;
+    border-bottom: 1px solid var(--line);
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 300ms var(--ease);
   }
-  .past__list img {
-    width: 96px;
-    height: 96px;
-    border-radius: var(--r-xl);
+  .past__item img,
+  .past__mono {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--r-full);
     object-fit: cover;
-    filter: grayscale(1) brightness(0.8);
+    filter: grayscale(1) brightness(0.85);
+    transition:
+      filter 400ms var(--ease),
+      transform 400ms var(--ease);
   }
-  .past__list span {
+  .past__mono {
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--ink-soft);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    filter: none;
+  }
+  .past__name {
     display: flex;
     flex-direction: column;
-    font-weight: 600;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
-  .past__list small {
+  .past__name small {
+    margin-top: var(--s-25);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
     font-weight: 400;
+    letter-spacing: 0;
     color: var(--ink-soft);
+  }
+  .past__item :global(.past__go) {
+    margin-left: auto;
+    color: var(--ink-soft);
+    transition:
+      color 300ms var(--ease),
+      transform 300ms var(--ease);
+  }
+  @media (hover: hover) {
+    .past__list:has(.past__item:hover) .past__item:not(:hover) {
+      opacity: 0.45;
+    }
+    .past__item:hover img {
+      filter: none;
+      transform: scale(1.06);
+    }
+    .past__item:hover .past__mono {
+      color: var(--terracota);
+      transform: scale(1.06);
+    }
+    a.past__item:hover :global(.past__go) {
+      color: var(--terracota);
+      transform: translate(2px, -2px);
+    }
+  }
+  .past__item:focus-visible {
+    outline: 2px solid var(--terracota);
+    outline-offset: 4px;
+    border-radius: var(--r-md);
+  }
+  @media (min-width: 768px) {
+    .past__head h2 {
+      font-size: 3.75rem;
+    }
+    .past__list {
+      grid-template-columns: 1fr 1fr;
+      column-gap: var(--s-600);
+    }
+    .past__item img,
+    .past__mono {
+      width: 72px;
+      height: 72px;
+    }
+    .past__name {
+      font-size: 1.75rem;
+    }
   }
 
   /* Evento privado */

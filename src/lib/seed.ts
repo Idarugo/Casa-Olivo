@@ -4,7 +4,7 @@
 */
 import type { Row } from './db';
 import { cocina, bar, happyHour } from './seed/carta';
-import { shows, karaoke, bases } from './seed/eventos';
+import { shows, karaoke, bases, artistas } from './seed/eventos';
 import { scenes, horario } from './seed/site';
 import { faqs } from './seed/faqs';
 
@@ -176,6 +176,8 @@ export async function seedIfEmpty(db: Driver) {
     ),
   );
 
+  await Promise.all(artistas.map((a, i) => insert('artistas', { nombre: a.nombre, que: '', cuando: '', foto: null, link: a.link }, i)));
+
   await Promise.all(karaoke.jornadas.map((j, i) => insert('karaoke_jornadas', j, i)));
   await Promise.all(karaoke.premios.map((p, i) => insert('karaoke_premios', p, i)));
   await Promise.all(bases.map((b, i) => insert('karaoke_bases', { t: b.t, p: b.p ?? [], li: b.li ?? [] }, i)));
@@ -199,4 +201,18 @@ export async function seedIfEmpty(db: Driver) {
   );
 
   await Promise.all(faqs.map((f, i) => insert('faqs', f, i)));
+}
+
+/** Bases ya creadas antes de existir "Artistas invitados": se cargan una sola vez */
+export async function seedArtistas(db: Driver) {
+  const nueva = await db.query(`insert into cargas (key) values ('artistas') on conflict (key) do nothing returning key`);
+  if (!nueva.length) return;
+  const [{ n }] = await db.query(`select count(*) as n from entries where collection = 'artistas'`);
+  if (Number(n) > 0) return;
+  for (const [i, a] of artistas.entries())
+    await db.query('insert into entries (collection, data, position) values ($1, $2, $3)', [
+      'artistas',
+      JSON.stringify({ nombre: a.nombre, que: '', cuando: '', foto: null, link: a.link }),
+      i,
+    ]);
 }

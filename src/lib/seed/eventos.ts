@@ -149,3 +149,14 @@ export const bases: { t: string; p?: string[]; li?: string[] }[] = [
     p: ['La organización se reserva el derecho de resolver situaciones no contempladas en estas bases, ajustar aspectos operativos del concurso y realizar modificaciones que contribuyan a su correcto desarrollo. Sus decisiones serán inapelables.'],
   },
 ];
+
+// Artistas de las historias destacadas del Instagram del restaurante
+const destacada = (id: string) => `https://www.instagram.com/stories/highlights/${id}/`;
+export const artistas: { nombre: string; link: string }[] = [
+  { nombre: 'Luis Jara', link: destacada('18277245379303726') },
+  { nombre: 'José Alfredo Fuentes', link: destacada('18402032410132096') },
+  { nombre: 'Álvaro Salas', link: destacada('18086852251797436') },
+  { nombre: 'Violento Parra', link: destacada('17935864611151073') },
+  { nombre: 'Pablo Herrera', link: destacada('18043011719367156') },
+  { nombre: 'Álvaro Véliz', link: destacada('18134211466497531') },
+];

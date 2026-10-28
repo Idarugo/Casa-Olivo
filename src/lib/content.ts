@@ -173,6 +173,13 @@ export async function loadContent() {
       jornadas,
       premios: by('karaoke_premios').map((p) => ({ lugar: p.lugar, monto: Number(p.monto) })),
     },
+    artistas: by('artistas').map((a) => ({
+      nombre: a.nombre as string,
+      que: (a.que || undefined) as string | undefined,
+      cuando: (a.cuando || undefined) as string | undefined,
+      foto: (a.foto?.sm || a.foto?.src || undefined) as string | undefined,
+      link: (a.link || undefined) as string | undefined,
+    })),
     bases: by('karaoke_bases').map((b) => ({ t: b.t, p: (b.p ?? []).filter(Boolean), li: (b.li ?? []).filter(Boolean) })),
     faqs: by('faqs') as { q: string; a: string }[],
   };

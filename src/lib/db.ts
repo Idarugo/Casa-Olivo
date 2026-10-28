@@ -12,6 +12,8 @@ export type Row = Record<string, any>;
 type Driver = { query(text: string, params?: unknown[]): Promise<Row[]> };
 
 const SCHEMA = [
+  // Cargas de contenido ya hechas una vez, para no repetirlas
+  `create table if not exists cargas (key text primary key, at timestamptz not null default now())`,
   `create table if not exists users (
     id serial primary key,
     email text unique not null,
@@ -91,8 +93,9 @@ async function connect(): Promise<Driver> {
   }
 
   for (const stmt of SCHEMA) await driver.query(stmt);
-  const { seedIfEmpty } = await import('./seed');
+  const { seedIfEmpty, seedArtistas } = await import('./seed');
   await seedIfEmpty(driver);
+  await seedArtistas(driver);
   return driver;
 }
 
