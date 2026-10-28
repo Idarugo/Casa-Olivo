@@ -1,4 +1,5 @@
 ---
+import { getSecret } from 'astro:env/server';
 import AuthShell from '../../components/admin/AuthShell.astro';
 import Icon from '../../components/Icon.astro';
 import { countUsers, createUser, startSession, validatePassword, checkSetupKey, setupKeyRequired } from '../../lib/auth';
@@ -7,7 +8,7 @@ import { countUsers, createUser, startSession, validatePassword, checkSetupKey, 
 if ((await countUsers()) > 0) return Astro.redirect('/admin/login');
 
 const needsKey = setupKeyRequired();
-const keyConfigured = !needsKey || !!(process.env.SETUP_KEY ?? import.meta.env.SETUP_KEY);
+const keyConfigured = !needsKey || !!getSecret('SETUP_KEY');
 let error = '';
 const values = { name: '', email: '' };
 

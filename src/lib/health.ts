@@ -2,6 +2,7 @@
   Estado de servicios: revisa en vivo todo aquello de lo que depende el sitio.
   Cada revisión tiene tiempo límite y nunca lanza: devuelve ok, aviso o error.
 */
+import { getSecret } from 'astro:env/server';
 import { query, one } from './db';
 import { loadContent } from './content';
 import { termina } from './format';
@@ -44,7 +45,7 @@ export async function runChecks(): Promise<Check[]> {
     } catch {
       /* algunos motores no lo informan */
     }
-    const local = !(process.env.DATABASE_URL ?? import.meta.env.DATABASE_URL);
+    const local = !getSecret('DATABASE_URL');
     add({
       key: 'db',
       group: 'Servicios',
@@ -65,7 +66,7 @@ export async function runChecks(): Promise<Check[]> {
   // Fotos
   tasks.push(
     (async () => {
-      const token = process.env.BLOB_READ_WRITE_TOKEN ?? import.meta.env.BLOB_READ_WRITE_TOKEN;
+      const token = getSecret('BLOB_READ_WRITE_TOKEN');
       if (!token) {
         add({
           key: 'blob',
@@ -187,7 +188,7 @@ export async function runChecks(): Promise<Check[]> {
     one<{ n: string }>(`select count(*) as n from login_attempts where not ok and at > now() - interval '24 hours'`),
   ]);
   const hayUsuarios = Number(usuarios?.n ?? 0) > 0;
-  if (hayUsuarios && (process.env.SETUP_KEY ?? import.meta.env.SETUP_KEY) && import.meta.env.PROD)
+  if (hayUsuarios && getSecret('SETUP_KEY') && import.meta.env.PROD)
     add({
       key: 's-setup',
       group: 'Seguridad',

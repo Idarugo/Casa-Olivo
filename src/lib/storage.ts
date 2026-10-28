@@ -4,6 +4,7 @@
   Producción: Vercel Blob. Desarrollo: carpeta .data/uploads, servida por /uploads.
 */
 import sharp from 'sharp';
+import { getSecret } from 'astro:env/server';
 import { randomBytes } from 'node:crypto';
 import type { Image } from './schema';
 
@@ -13,7 +14,7 @@ const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/hei
 export class UploadError extends Error {}
 
 async function store(path: string, data: Buffer): Promise<string> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN ?? import.meta.env.BLOB_READ_WRITE_TOKEN;
+  const token = getSecret('BLOB_READ_WRITE_TOKEN');
   if (token) {
     const { put } = await import('@vercel/blob');
     const blob = await put(path, data, { access: 'public', contentType: 'image/webp', token, addRandomSuffix: false });

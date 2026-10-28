@@ -6,6 +6,7 @@
 import { randomBytes, scrypt as _scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { AstroCookies } from 'astro';
+import { getSecret } from 'astro:env/server';
 import { query, one } from './db';
 
 const scrypt = promisify(_scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
@@ -141,7 +142,7 @@ export function setupKeyRequired() {
   return import.meta.env.PROD;
 }
 export function checkSetupKey(given: string) {
-  const expected = process.env.SETUP_KEY ?? import.meta.env.SETUP_KEY;
+  const expected = getSecret('SETUP_KEY');
   if (!setupKeyRequired()) return true;
   if (!expected || !given) return false;
   const a = Buffer.from(sha(given));

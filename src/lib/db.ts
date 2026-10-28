@@ -5,6 +5,9 @@
   Ambos hablan el mismo SQL, así que el resto del código no distingue.
 */
 
+// Las claves se leen al ejecutar, nunca quedan copiadas dentro del código publicado
+import { getSecret } from 'astro:env/server';
+
 export type Row = Record<string, any>;
 type Driver = { query(text: string, params?: unknown[]): Promise<Row[]> };
 
@@ -71,7 +74,7 @@ const SCHEMA = [
 let ready: Promise<Driver> | null = null;
 
 async function connect(): Promise<Driver> {
-  const url = process.env.DATABASE_URL ?? import.meta.env.DATABASE_URL;
+  const url = getSecret('DATABASE_URL');
   let driver: Driver;
   if (url) {
     const { neon } = await import('@neondatabase/serverless');
