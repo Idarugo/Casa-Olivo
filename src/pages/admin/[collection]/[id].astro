@@ -1,0 +1,69 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import AdminForm from '../../../components/admin/AdminForm.astro';
+import { getCollection } from '../../../lib/schema';
+import { validate, type Errors } from '../../../lib/forms';
+import { getEntry, createEntry, updateEntry, deleteEntry, duplicateEntry, categoriasMap } from '../../../lib/repo';
+import { publicHref } from '../../../lib/admin';
+
+const col = getCollection(Astro.params.collection!);
+if (!col) return new Response(null, { status: 404 });
+
+const isNew = Astro.params.id === 'nuevo';
+const id = isNew ? 0 : Number(Astro.params.id);
+if (!isNew && !Number.isInteger(id)) return new Response(null, { status: 404 });
+
+const entry = isNew ? undefined : await getEntry(col.key, id);
+if (!isNew && !entry) return Astro.redirect(`/admin/${col.key}?error=noexiste`);
+
+// Valores por defecto de un elemento nuevo (ej. categoría elegida desde la lista)
+let data: Record<string, any> = entry?.data ?? Object.fromEntries([...Astro.url.searchParams].filter(([k]) => col.fields.some((f) => f.name === k)));
+let errors: Errors = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? 'save');
+  if (!isNew && action === 'delete') {
+    await deleteEntry(col.key, id);
+    return Astro.redirect(`/admin/${col.key}?ok=eliminado`);
+  }
+  if (!isNew && action === 'duplicate') {
+    const copia = await duplicateEntry(col.key, id);
+    return Astro.redirect(`/admin/${col.key}/${copia}?ok=duplicado`);
+  }
+  const res = validate(col.fields, form);
+  data = res.data;
+  errors = res.errors;
+  if (res.ok) {
+    if (isNew) {
+      const nuevo = await createEntry(col.key, data);
+      return Astro.redirect(`/admin/${col.key}/${nuevo}?ok=creado`);
+    }
+    await updateEntry(col.key, id, data);
+    return Astro.redirect(`/admin/${col.key}/${id}?ok=guardado`);
+  }
+  Astro.response.status = 422;
+}
+
+const cats = col.fields.some((f) => f.type === 'select' && f.options === 'categorias') ? await categoriasMap() : {};
+const options = { categorias: Object.entries(cats).map(([value, label]) => ({ value, label })) };
+const title = isNew ? `Agregar ${col.singular}` : String(entry!.data[col.title] || 'Sin título').split('\n')[0];
+const updated = entry?.updated_at
+  ? new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(entry.updated_at))
+  : '';
+---
+
+<Admin title={title} crumbs={[{ label: col.group }, { label: col.label, href: `/admin/${col.key}` }, { label: isNew ? 'Nuevo' : 'Editar' }]} current={col.key}>
+  <AdminForm
+    fields={col.fields}
+    data={data}
+    errors={errors}
+    options={options}
+    submitLabel={isNew ? `Crear ${col.singular}` : 'Guardar cambios'}
+    meta={updated ? [{ label: 'Última edición', value: updated }] : []}
+    canDelete={!isNew}
+    canDuplicate={!isNew}
+    deleteLabel={`“${title}”`}
+    viewHref={publicHref(col.key)}
+  />
+</Admin>

@@ -1,6 +1,7 @@
 ---
-import { horario, links } from '../data/site';
 import Icon from './Icon.astro';
+
+const { horario, links, inicio, general } = Astro.locals.content!;
 ---
 
 <section class="visita" id="visita" aria-labelledby="visita-title">
@@ -12,11 +13,14 @@ import Icon from './Icon.astro';
     <div class="visita__head">
       <span class="eyebrow" data-reveal>Visítanos</span>
       <h2 id="visita-title" data-reveal style="--d:80ms">
-        Te esperamos con
-        <br />
-        lo mejor de lo nuestro
+        {String(inicio.visita_titulo ?? '').split('\n').map((line, k) => (
+          <>
+            {k > 0 && <br />}
+            {line}
+          </>
+        ))}
       </h2>
-      <p data-reveal style="--d:160ms">En un espacio único, lleno de tradición y calidez, en el corazón de la sexta región.</p>
+      {inicio.visita_texto && <p data-reveal style="--d:160ms">{inicio.visita_texto}</p>}
       <div class="visita__ctas" data-reveal style="--d:240ms">
         <a class="btn btn--primary" href={links.reserva}>
           Reserva tu mesa
@@ -34,9 +38,13 @@ import Icon from './Icon.astro';
         <Icon name="map-pin" size={24} />
         <h3>Dirección</h3>
         <p>
-          Espacio Santa Julia
-          <br />
-          Av. Julio Silva 597, Olivar
+          {general.lugar && (
+            <>
+              {general.lugar}
+              <br />
+            </>
+          )}
+          {general.direccion}
         </p>
         <a class="visita__link" href={links.maps} target="_blank" rel="noopener">
           Cómo llegar

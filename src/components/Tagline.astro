@@ -1,5 +1,6 @@
 ---
-const lines = ['Comida honesta,', 'tragos con carácter', 'y una atención que te abraza.'];
+const { inicio } = Astro.locals.content!;
+const lines = String(inicio.tagline ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
 let n = 0;
 ---
 
@@ -18,9 +19,7 @@ let n = 0;
         ))
       }
     </p>
-    <p class="tagline__note" data-reveal>
-      Creemos que la experiencia no está solo en lo que comes, sino en cómo te hacen sentir.
-    </p>
+    {inicio.tagline_nota && <p class="tagline__note" data-reveal>{inicio.tagline_nota}</p>}
   </div>
 </section>
 

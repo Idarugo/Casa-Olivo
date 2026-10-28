@@ -1,6 +1,9 @@
 ---
-import { links } from '../data/site';
 import Icon from './Icon.astro';
+
+const { links, inicio } = Astro.locals.content!;
+const items = (inicio.celebra_items ?? []) as { titulo: string; texto?: string }[];
+const iconos = ['fork-knife', 'champagne'];
 ---
 
 <section class="celebra" id="celebraciones" aria-labelledby="celebra-title">
@@ -19,23 +22,20 @@ import Icon from './Icon.astro';
 
   <div class="celebra__text">
     <span class="eyebrow" data-reveal>Celebraciones</span>
-    <h2 id="celebra-title" data-reveal style="--d:80ms">Celebraciones con sabor local</h2>
-    <p data-reveal style="--d:160ms">¿Buscas un espacio auténtico para celebrar? En Casa Olivo te ofrecemos:</p>
+    <h2 id="celebra-title" data-reveal style="--d:80ms">{inicio.celebra_titulo}</h2>
+    {inicio.celebra_intro && <p data-reveal style="--d:160ms">{inicio.celebra_intro}</p>}
     <ul class="celebra__list">
-      <li data-reveal style="--d:200ms">
-        <Icon name="fork-knife" size={24} />
-        <div>
-          <h3>Menús especiales</h3>
-          <p>Para grupos y ocasiones, pensados junto a ti.</p>
-        </div>
-      </li>
-      <li data-reveal style="--d:260ms">
-        <Icon name="champagne" size={24} />
-        <div>
-          <h3>Cenas temáticas</h3>
-          <p>Con productos de estación y lo mejor de nuestra carta.</p>
-        </div>
-      </li>
+      {
+        items.map((it, i) => (
+          <li data-reveal style={`--d:${200 + i * 60}ms`}>
+            <Icon name={iconos[i % iconos.length]} size={24} />
+            <div>
+              <h3>{it.titulo}</h3>
+              {it.texto && <p>{it.texto}</p>}
+            </div>
+          </li>
+        ))
+      }
     </ul>
     <div data-reveal style="--d:320ms">
       <a class="btn btn--primary" href={links.whatsapp} target="_blank" rel="noopener">
@@ -45,10 +45,8 @@ import Icon from './Icon.astro';
     </div>
 
     <div class="celebra__equipo" data-reveal>
-      <h3>Y lo más importante, nuestro equipo</h3>
-      <p>
-        Personas cercanas, comprometidas, alegres y atentas, que entienden que comer bien también es sentirse bien recibido.
-      </p>
+      <h3>{inicio.equipo_titulo}</h3>
+      {inicio.equipo_texto && <p>{inicio.equipo_texto}</p>}
     </div>
   </div>
 </section>

@@ -6,3 +6,10 @@ dist
 # Configuración local del entorno (rutas de este equipo)
 .claude/launch.json
 .claude/settings.local.json
+
+# Datos locales de desarrollo
+.data
+
+.env
+.env.local
+.vercel

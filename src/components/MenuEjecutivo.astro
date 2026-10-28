@@ -1,13 +1,9 @@
 ---
-import { links } from '../data/site';
 import Icon from './Icon.astro';
 
-const tiempos = [
-  { n: '01', nombre: 'Entrada' },
-  { n: '02', nombre: 'Fondo' },
-  { n: '03', nombre: 'Postre' },
-  { n: '04', nombre: 'Infusión o café' },
-];
+const { links, inicio, menuEjecutivo: m } = Astro.locals.content!;
+const tiempos = ((m.tiempos ?? []) as string[]).map((nombre, i) => ({ n: String(i + 1).padStart(2, '0'), nombre }));
+const precio = Number(m.precio ?? 0);
 ---
 
 <section class="menu" id="menu" aria-labelledby="menu-title">
@@ -15,19 +11,17 @@ const tiempos = [
     <div class="menu__intro">
       <span class="eyebrow" data-reveal>Menú ejecutivo</span>
       <h2 id="menu-title" data-reveal style="--d:80ms">El mejor sabor, todos los días</h2>
-      <p data-reveal style="--d:160ms">
-        Un almuerzo completo de cocina chilena para tu semana, preparado al momento con productos frescos.
-      </p>
+      {inicio.menu_texto && <p data-reveal style="--d:160ms">{inicio.menu_texto}</p>}
       <p class="menu__when" data-reveal style="--d:240ms">
         <Icon name="clock" size={20} />
-        Miércoles a viernes, de 12:30 a 17:00
+        {m.dias}, de {m.horas}
       </p>
     </div>
 
     <div class="menu__card" data-reveal style="--d:120ms">
       <div class="menu__price">
         <span class="menu__currency">$</span>
-        <span data-count="9900">9.900</span>
+        <span data-count={precio}>{precio.toLocaleString('es-CL')}</span>
       </div>
       <p class="menu__per">por persona</p>
       <ol class="menu__list">

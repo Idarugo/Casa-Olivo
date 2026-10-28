@@ -1,0 +1,61 @@
+---
+import AuthShell from '../../components/admin/AuthShell.astro';
+import Icon from '../../components/Icon.astro';
+import { login, startSession, countUsers } from '../../lib/auth';
+
+if (Astro.locals.user) return Astro.redirect('/admin');
+if ((await countUsers()) === 0) return Astro.redirect('/admin/setup');
+
+const next = Astro.url.searchParams.get('next');
+const safeNext = next && next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin';
+let error = '';
+let email = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  email = String(form.get('email') ?? '');
+  const res = await login(email, String(form.get('password') ?? ''));
+  if (res.user) {
+    await startSession(Astro.cookies, res.user.id);
+    return Astro.redirect(safeNext);
+  }
+  error = res.error ?? 'No pudimos iniciar sesión.';
+}
+const salio = Astro.url.searchParams.has('salio');
+---
+
+<AuthShell title="Ingresar">
+  <h1>Bienvenido de vuelta</h1>
+  <p>Ingresa para actualizar la carta, los eventos y todo el sitio.</p>
+  {
+    error && (
+      <div class="auth__alert" role="alert">
+        <Icon name="warning-circle" size={18} /> {error}
+      </div>
+    )
+  }
+  {
+    salio && !error && (
+      <div class="auth__alert auth__alert--ok" role="status">
+        <Icon name="check-circle" size={18} /> Cerraste sesión. Hasta pronto.
+      </div>
+    )
+  }
+  <form class="auth__form" method="post">
+    <div class="field">
+      <label class="field__label" for="email">Correo</label>
+      <input class="input" id="email" name="email" type="email" autocomplete="username" required value={email} autofocus={!email} />
+    </div>
+    <div class="field">
+      <label class="field__label" for="password">Contraseña</label>
+      <div class="pw">
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required autofocus={!!email} />
+        <button type="button" data-reveal-pw aria-pressed="false">Mostrar</button>
+      </div>
+    </div>
+    <button class="btn btn--primary" type="submit">
+      Ingresar
+      <Icon name="arrow-right" size={18} />
+    </button>
+  </form>
+</AuthShell>

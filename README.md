@@ -2,7 +2,7 @@
 
 Sitio web de **Casa Olivo Restaurante**: cocina chilena en una casona con más de cien años en Olivar, a minutos de Rancagua.
 
-Hecho con [Astro](https://astro.build), sin frameworks de UI ni librerías de animación: el scroll y las transiciones están escritos a mano en TypeScript.
+Hecho con [Astro](https://astro.build), sin frameworks de UI ni librerías de animación: el scroll y las transiciones están escritos a mano en TypeScript. Todo el contenido se edita desde un panel propio en `/admin`.
 
 ## Páginas
 
@@ -14,6 +14,7 @@ Hecho con [Astro](https://astro.build), sin frameworks de UI ni librerías de an
 | `/eventos` | Próximos shows con entradas en Ticketplus y eventos privados |
 | `/karaoke` | Concurso de karaoke: calendario, premios, inscripción y bases |
 | `/links` | Enlace para la bio de Instagram |
+| `/admin` | Panel para editar todo el contenido del sitio |
 
 ## Desarrollo
 
@@ -31,15 +32,42 @@ El sitio queda en `http://localhost:4321`. Para generar la versión estática en
 npm run build
 ```
 
-## Editar contenido
+## Panel de administración
 
-Todo el contenido vive en `src/data/`, no hace falta tocar los componentes:
+En `/admin` se agrega, edita, ordena y elimina todo lo que muestra el sitio:
 
-- `site.ts`: enlaces, escenas del recorrido del inicio y horario.
-- `carta.ts`: platos, tragos y precios.
-- `eventos.ts`: shows, jornadas del karaoke y bases. Los eventos pasados se ocultan solos según la fecha.
+- **Carta:** platos y tragos, categorías, menú ejecutivo y happy hour.
+- **Eventos:** shows con afiche, fecha y link de entradas. Se ocultan solos cuando pasan.
+- **Karaoke:** datos del concurso, jornadas, premios y bases.
+- **Sitio:** escenas del recorrido del inicio (con su punto de vuelo), textos del inicio, datos del local y preguntas frecuentes.
+- **Usuarios:** quién puede entrar al panel.
 
-Las imágenes están en `public/img/` en formato WebP, con una versión `-sm` para pantallas pequeñas.
+Los cambios se ven en el sitio en segundos, sin volver a desplegar. Atajos: <kbd>⌘K</kbd> para buscar cualquier cosa y <kbd>⌘S</kbd> para guardar.
+
+### Cómo funciona
+
+- El sitio corre en Vercel en modo servidor (`output: 'server'`). Cada página lee el contenido de Postgres al responder, y la CDN lo guarda 5 segundos.
+- Base de datos: Postgres de Neon (`DATABASE_URL`). Las tablas se crean solas y, si la base está vacía, se carga el contenido original desde `src/lib/seed/`.
+- Fotos: se convierten a WebP en 1600 px y 900 px y se guardan en Vercel Blob (`BLOB_READ_WRITE_TOKEN`).
+- Sesiones con cookie `httpOnly`, contraseñas con scrypt y bloqueo de 15 minutos tras 5 intentos fallidos.
+
+### Puesta en marcha en Vercel
+
+1. En el proyecto de Vercel, **Storage → Create → Neon (Postgres)** y conéctalo al proyecto. Esto define `DATABASE_URL`.
+2. **Storage → Create → Blob** y conéctalo al proyecto. Esto define `BLOB_READ_WRITE_TOKEN`.
+3. En **Settings → Environment Variables** agrega `SETUP_KEY` con un valor largo que solo tú conozcas.
+4. Despliega y entra a `/admin/setup`: con la `SETUP_KEY` creas la primera cuenta. Desde **Usuarios** puedes invitar a más personas.
+
+### Desarrollo local
+
+Sin variables de entorno, `npm run dev` usa PGlite (un Postgres embebido en `.data/`) y guarda las fotos en `.data/uploads`. La primera vez entra a `http://localhost:4321/admin/setup` para crear tu cuenta local. Para empezar de cero, borra la carpeta `.data`.
+
+## Estructura
+
+- `src/lib/schema.ts`: qué se puede editar y con qué campos. El panel arma sus formularios a partir de aquí.
+- `src/lib/content.ts`: lee el contenido publicado y lo entrega a las páginas.
+- `src/lib/db.ts`, `auth.ts`, `storage.ts`: base de datos, sesiones y fotos.
+- `src/pages/admin/`: el panel.
 
 ## Sistema visual
 

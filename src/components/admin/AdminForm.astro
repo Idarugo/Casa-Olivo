@@ -1,0 +1,101 @@
+---
+import type { Field } from '../../lib/schema';
+import type { Errors } from '../../lib/forms';
+import AdminField from './AdminField.astro';
+import Icon from '../Icon.astro';
+
+type Props = {
+  fields: Field[];
+  data: Record<string, any>;
+  errors?: Errors;
+  options?: Record<string, { value: string; label: string }[]>;
+  submitLabel?: string;
+  meta?: { label: string; value: string }[];
+  /** Acciones secundarias: duplicar, eliminar */
+  canDelete?: boolean;
+  canDuplicate?: boolean;
+  deleteLabel?: string;
+  viewHref?: string;
+};
+const { fields, data, errors = {}, options, submitLabel = 'Guardar cambios', meta = [], canDelete, canDuplicate, deleteLabel = 'este elemento', viewHref } = Astro.props;
+const hasErrors = Object.keys(errors).length > 0;
+---
+
+<form method="post" class="form-grid" data-form novalidate>
+  <div class="card">
+    {
+      hasErrors && (
+        <div class="card__head">
+          <p class="field__error" role="alert">
+            <Icon name="warning-circle" size={18} /> Revisa los campos marcados antes de guardar.
+          </p>
+        </div>
+      )
+    }
+    <div class="card__body fields">
+      {fields.map((f) => <AdminField field={f} name={f.name} value={data[f.name]} errors={errors} options={options} data={data} />)}
+    </div>
+  </div>
+
+  <aside class="aside">
+    <div class="card card__body aside">
+      <button class="btn btn--primary" type="submit" name="_action" value="save" data-save>
+        <Icon name="floppy-disk" size={18} />
+        {submitLabel}
+      </button>
+      {
+        viewHref && (
+          <a class="btn btn--quiet" href={viewHref} target="_blank" rel="noopener">
+            <Icon name="arrow-square-out" size={18} />
+            Ver en el sitio
+          </a>
+        )
+      }
+      {
+        meta.length > 0 && (
+          <div class="aside__meta">
+            {meta.map((m) => (
+              <div>
+                <span>{m.label}</span>
+                <strong>{m.value}</strong>
+              </div>
+            ))}
+          </div>
+        )
+      }
+      <p class="field__help">Atajo: <kbd>⌘</kbd> <kbd>S</kbd> para guardar.</p>
+    </div>
+    {
+      (canDuplicate || canDelete) && (
+        <div class="card card__body aside">
+          {canDuplicate && (
+            <button class="btn btn--quiet" type="submit" name="_action" value="duplicate" formnovalidate data-skip-dirty>
+              <Icon name="copy" size={18} />
+              Duplicar
+            </button>
+          )}
+          {canDelete && (
+            <button
+              class="btn btn--danger"
+              type="submit"
+              name="_action"
+              value="delete"
+              formnovalidate
+              data-skip-dirty
+              data-confirm={`¿Eliminar ${deleteLabel}?`}
+              data-confirm-text="Desaparece del sitio de inmediato y no se puede deshacer."
+            >
+              <Icon name="trash" size={18} />
+              Eliminar
+            </button>
+          )}
+        </div>
+      )
+    }
+  </aside>
+
+  <div class="savebar" data-savebar aria-hidden="true">
+    <span><i class="savebar__dot"></i> Tienes cambios sin guardar</span>
+    <button class="btn btn--primary btn--sm" type="submit" name="_action" value="save">Guardar</button>
+  </div>
+</form>

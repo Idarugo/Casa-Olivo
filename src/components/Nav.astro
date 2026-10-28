@@ -1,5 +1,5 @@
 ---
-import { links } from '../data/site';
+const { links, scenes } = Astro.locals.content!;
 
 type Props = { current?: 'inicio' | 'carta' | 'reserva' | 'eventos' };
 const { current = 'inicio' } = Astro.props;
@@ -7,7 +7,7 @@ const { current = 'inicio' } = Astro.props;
 // En el inicio las anclas son locales; en otras páginas vuelven al inicio.
 const base = current === 'inicio' ? '' : '/';
 const items = [
-  { label: 'La casona', href: `${base}#casona` },
+  { label: scenes[1]?.label || 'La casona', href: `${base}#${scenes[1]?.anchor ?? 'top'}` },
   { label: 'Carta', href: links.carta, page: 'carta' },
   { label: 'Menú ejecutivo', href: `${base}#menu`, spy: 'menu' },
   { label: 'Eventos', href: '/eventos', page: 'eventos' },

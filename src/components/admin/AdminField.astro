@@ -1,0 +1,245 @@
+---
+import type { Field } from '../../lib/schema';
+import type { Errors } from '../../lib/forms';
+import { isoToLocalInput } from '../../lib/format';
+import Icon from '../Icon.astro';
+
+type Props = {
+  field: Field;
+  name: string;
+  value: any;
+  errors?: Errors;
+  options?: Record<string, { value: string; label: string }[]>;
+  /** Datos completos del formulario, para campos que dependen de otro (punto de vuelo) */
+  data?: Record<string, any>;
+  compact?: boolean;
+};
+const { field: f, name, value, errors = {}, options = {}, data = {}, compact = false } = Astro.props;
+const error = errors[name];
+const id = `f-${name.replace(/[^a-z0-9]+/gi, '-')}`;
+const required = 'required' in f && f.required;
+const half = !compact && ['money', 'number', 'select', 'datetime', 'email', 'boolean'].includes(f.type) || (f.type === 'text' && !('wide' in f && f.wide) && !compact);
+const help = 'help' in f ? f.help : undefined;
+const placeholder = 'placeholder' in f ? f.placeholder : undefined;
+
+const selectOptions = f.type === 'select' ? (typeof f.options === 'string' ? (options[f.options] ?? []) : f.options) : [];
+const rows: any[] = f.type === 'list' || f.type === 'strings' ? (Array.isArray(value) ? value : []) : [];
+const img = f.type === 'image' ? (value?.src ? value : null) : null;
+const focalImg = f.type === 'focal' ? data?.[f.image] : null;
+const focal = f.type === 'focal' ? { x: Number(value?.x ?? 50), y: Number(value?.y ?? 50) } : null;
+const moneyValue = f.type === 'money' && value != null && value !== '' ? Number(value).toLocaleString('es-CL') : '';
+const itemLabel = 'item' in f && f.item ? f.item : 'elemento';
+const multiline = f.type === 'strings' && f.multiline;
+---
+
+<div
+  class:list={['field', { 'field--half': half, 'has-error': !!error }]}
+  data-field={f.type}
+  data-repeat={f.type === 'list' || f.type === 'strings' ? name : undefined}
+  data-image={f.type === 'image' ? '' : undefined}
+  data-focal={f.type === 'focal' ? '' : undefined}
+  data-focal-source={f.type === 'focal' ? name.replace(/[^.]+$/, f.image) : undefined}
+>
+  {
+    f.type !== 'boolean' && (
+      <label class="field__label" for={f.type === 'list' || f.type === 'strings' || f.type === 'focal' ? undefined : id}>
+        {f.label}
+        {required && <span class="field__req" aria-hidden="true">*</span>}
+      </label>
+    )
+  }
+
+  {
+    (f.type === 'text' || f.type === 'url' || f.type === 'email') && (
+      <input
+        class="input"
+        id={id}
+        name={name}
+        type={f.type === 'text' ? 'text' : f.type}
+        value={value ?? ''}
+        placeholder={placeholder}
+        required={required}
+        inputmode={f.type === 'url' ? 'url' : undefined}
+        autocomplete="off"
+      />
+    )
+  }
+  {f.type === 'textarea' && <textarea class="textarea" id={id} name={name} rows="3" placeholder={placeholder} required={required} data-autosize>{value ?? ''}</textarea>}
+  {
+    f.type === 'money' && (
+      <div class="money">
+        <input class="input" id={id} name={name} type="text" inputmode="numeric" value={moneyValue} placeholder="0" required={required} data-money autocomplete="off" />
+      </div>
+    )
+  }
+  {f.type === 'number' && <input class="input" id={id} name={name} type="number" value={value ?? ''} required={required} />}
+  {f.type === 'datetime' && <input class="input" id={id} name={name} type="datetime-local" value={value ? isoToLocalInput(value) : ''} required={required} />}
+  {
+    f.type === 'select' && (
+      <select class="select" id={id} name={name} required={required}>
+        {!required && <option value="">Elegir…</option>}
+        {required && !value && (
+          <option value="" disabled selected>
+            Elegir…
+          </option>
+        )}
+        {selectOptions.map((o) => (
+          <option value={o.value} selected={String(value ?? '') === o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+  {
+    f.type === 'boolean' && (
+      <label class="switch" for={id}>
+        <input id={id} name={name} type="checkbox" checked={!!value} />
+        <span class="switch__track" aria-hidden="true" />
+        <span class="switch__text">
+          {f.label}
+          {help && <small>{help}</small>}
+        </span>
+      </label>
+    )
+  }
+
+  {
+    f.type === 'image' && (
+      <>
+        <div class:list={['drop', { 'has-image': !!img }]} style={`--aspect:${f.aspect ?? '16 / 9'}`} tabindex="0" role="button" aria-label={`${f.label}: subir o cambiar foto`} data-drop>
+          {img && <img src={img.sm ?? img.src} alt="" />}
+          <div class="drop__empty">
+            <Icon name="upload-simple" size={28} />
+            <strong>Arrastra una foto aquí</strong>
+            <span>o haz clic para elegirla. JPG, PNG o WebP de hasta 12 MB.</span>
+          </div>
+          <div class="drop__bar">
+            <button type="button" data-image-change>
+              <Icon name="image" size={16} /> Cambiar
+            </button>
+            {!required && (
+              <button type="button" data-image-remove>
+                <Icon name="trash" size={16} /> Quitar
+              </button>
+            )}
+          </div>
+          <div class="drop__progress">
+            <span>
+              <i class="spinner" /> Optimizando foto…
+            </span>
+          </div>
+        </div>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic" hidden data-image-file />
+        <input type="hidden" name={name} value={img ? JSON.stringify(img) : ''} data-image-value />
+      </>
+    )
+  }
+
+  {
+    f.type === 'focal' && focal && (
+      <>
+        <div class="focal" data-focal-box tabindex="0" aria-label="Elegir punto de vuelo. Usa las flechas para moverlo.">
+          {focalImg?.src ? <img src={focalImg.sm ?? focalImg.src} alt="" data-focal-img /> : <img alt="" data-focal-img hidden />}
+          <span class="focal__empty" hidden={!!focalImg?.src}>
+            Sube primero la foto
+          </span>
+          <span class="focal__dot" style={`left:${focal.x}%;top:${focal.y}%`} data-focal-dot />
+        </div>
+        <input type="hidden" name={`${name}.x`} value={focal.x} data-focal-x />
+        <input type="hidden" name={`${name}.y`} value={focal.y} data-focal-y />
+      </>
+    )
+  }
+
+  {
+    f.type === 'strings' && (
+      <>
+        <div class="repeat" data-repeat-rows>
+          {rows.map((v, i) => (
+            <div class="repeat__row" data-repeat-row>
+              <div class="repeat__fields">
+                {multiline ? (
+                  <textarea class="textarea" name={`${name}.${i}`} rows="2" aria-label={itemLabel} data-autosize>
+                    {v}
+                  </textarea>
+                ) : (
+                  <input class="input" name={`${name}.${i}`} value={v} aria-label={itemLabel} autocomplete="off" />
+                )}
+              </div>
+              <div class="repeat__tools">
+                <button class="icon-btn" type="button" data-repeat-up aria-label="Subir"><Icon name="caret-up" size={16} /></button>
+                <button class="icon-btn icon-btn--danger" type="button" data-repeat-remove aria-label={`Quitar ${itemLabel}`}><Icon name="x" size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <template data-repeat-template>
+          <div class="repeat__row" data-repeat-row>
+            <div class="repeat__fields">
+              {multiline ? (
+                <textarea class="textarea" name={`${name}.__i__`} rows="2" aria-label={itemLabel} data-autosize />
+              ) : (
+                <input class="input" name={`${name}.__i__`} aria-label={itemLabel} autocomplete="off" />
+              )}
+            </div>
+            <div class="repeat__tools">
+              <button class="icon-btn" type="button" data-repeat-up aria-label="Subir"><Icon name="caret-up" size={16} /></button>
+              <button class="icon-btn icon-btn--danger" type="button" data-repeat-remove aria-label={`Quitar ${itemLabel}`}><Icon name="x" size={16} /></button>
+            </div>
+          </div>
+        </template>
+        <button class="btn btn--quiet btn--sm repeat__add" type="button" data-repeat-add>
+          <Icon name="plus" size={16} /> Agregar {itemLabel}
+        </button>
+      </>
+    )
+  }
+
+  {
+    f.type === 'list' && (
+      <>
+        <div class="repeat" data-repeat-rows>
+          {rows.map((row, i) => (
+            <div class="repeat__row" data-repeat-row>
+              <div class="repeat__fields">
+                {f.fields.map((sub) => (
+                  <Astro.self field={sub} name={`${name}.${i}.${sub.name}`} value={row?.[sub.name]} errors={errors} options={options} compact />
+                ))}
+              </div>
+              <div class="repeat__tools">
+                <button class="icon-btn" type="button" data-repeat-up aria-label="Subir"><Icon name="caret-up" size={16} /></button>
+                <button class="icon-btn icon-btn--danger" type="button" data-repeat-remove aria-label={`Quitar ${itemLabel}`}><Icon name="x" size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <template data-repeat-template>
+          <div class="repeat__row" data-repeat-row>
+            <div class="repeat__fields">
+              {f.fields.map((sub) => (
+                <Astro.self field={sub} name={`${name}.__i__.${sub.name}`} value={undefined} options={options} compact />
+              ))}
+            </div>
+            <div class="repeat__tools">
+              <button class="icon-btn" type="button" data-repeat-up aria-label="Subir"><Icon name="caret-up" size={16} /></button>
+              <button class="icon-btn icon-btn--danger" type="button" data-repeat-remove aria-label={`Quitar ${itemLabel}`}><Icon name="x" size={16} /></button>
+            </div>
+          </div>
+        </template>
+        <button class="btn btn--quiet btn--sm repeat__add" type="button" data-repeat-add>
+          <Icon name="plus" size={16} /> Agregar {itemLabel}
+        </button>
+      </>
+    )
+  }
+
+  {help && f.type !== 'boolean' && <p class="field__help">{help}</p>}
+  {
+    error && (
+      <p class="field__error" role="alert">
+        <Icon name="warning-circle" size={16} /> {error}
+      </p>
+    )
+  }
+</div>

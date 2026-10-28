@@ -1,0 +1,171 @@
+---
+import '../styles/global.css';
+import '../styles/admin.css';
+import Icon from '../components/Icon.astro';
+import { collections, singletons, groups } from '../lib/schema';
+import { counts } from '../lib/repo';
+
+type Props = {
+  title: string;
+  description?: string;
+  crumbs?: { label: string; href?: string }[];
+  current?: string;
+};
+const { title, description, crumbs = [], current } = Astro.props;
+const user = Astro.locals.user!;
+const n = await counts();
+const initials = user.name
+  .split(/\s+/)
+  .map((w) => w[0])
+  .slice(0, 2)
+  .join('')
+  .toUpperCase();
+
+const nav = groups.map((g) => ({
+  group: g,
+  items: [
+    ...collections.filter((c) => c.group === g).map((c) => ({ key: c.key, label: c.label, icon: c.icon, href: `/admin/${c.key}`, count: n[c.key] ?? 0 })),
+    ...singletons.filter((s) => s.group === g).map((s) => ({ key: s.key, label: s.label, icon: s.icon, href: `/admin/ajustes/${s.key}`, count: undefined })),
+  ],
+}));
+---
+
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Panel Casa Olivo</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="theme-color" content="#0e0d07" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="admin" data-admin>
+    <a class="skip" href="#contenido">Saltar al contenido</a>
+
+    <header class="topbar">
+      <button class="icon-btn" type="button" data-menu aria-label="Abrir menú"><Icon name="list" size={22} /></button>
+      <a href="/admin"><img src="/img/logo-crema.webp" alt="Panel Casa Olivo" width="600" height="247" /></a>
+      <button class="icon-btn" type="button" data-palette-open aria-label="Buscar" style="margin-left:auto"><Icon name="magnifying-glass" size={20} /></button>
+    </header>
+    <div class="scrim" data-scrim></div>
+
+    <aside class="side" aria-label="Menú del panel">
+      <a class="side__brand" href="/admin">
+        <img src="/img/logo-crema.webp" alt="Casa Olivo" width="600" height="247" />
+        <span class="side__badge">Panel</span>
+      </a>
+      <button class="side__search" type="button" data-palette-open>
+        <Icon name="magnifying-glass" size={16} />
+        Buscar…
+        <kbd>⌘K</kbd>
+      </button>
+
+      <a class="side__link" href="/admin" aria-current={current === 'resumen' ? 'page' : undefined}>
+        <Icon name="squares-four" size={18} />
+        Resumen
+      </a>
+      {
+        nav.map((g) => (
+          <div class="side__group">
+            <p class="side__group-t">{g.group}</p>
+            {g.items.map((it) => (
+              <a class="side__link" href={it.href} aria-current={current === it.key ? 'page' : undefined}>
+                <Icon name={it.icon} size={18} />
+                {it.label}
+                {it.count !== undefined && <span class="side__count">{it.count}</span>}
+              </a>
+            ))}
+          </div>
+        ))
+      }
+      <div class="side__group">
+        <p class="side__group-t">Cuenta</p>
+        <a class="side__link" href="/admin/usuarios" aria-current={current === 'usuarios' ? 'page' : undefined}>
+          <Icon name="users-three" size={18} />
+          Usuarios
+        </a>
+        <a class="side__link" href="/" target="_blank" rel="noopener">
+          <Icon name="arrow-square-out" size={18} />
+          Ver el sitio
+        </a>
+      </div>
+
+      <div class="side__foot">
+        <div class="side__user">
+          <span class="avatar" aria-hidden="true">{initials}</span>
+          <span class="side__user-info">
+            <strong>{user.name}</strong>
+            <span>{user.email}</span>
+          </span>
+          <form method="post" action="/admin/logout">
+            <button class="icon-btn" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión"><Icon name="sign-out" size={18} /></button>
+          </form>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="contenido">
+      <div class="main__inner">
+        {
+          crumbs.length > 0 && (
+            <nav class="crumbs" aria-label="Ruta">
+              <a href="/admin">Panel</a>
+              {crumbs.map((c) => (
+                <>
+                  <span aria-hidden="true">/</span>
+                  {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+                </>
+              ))}
+            </nav>
+          )
+        }
+        <slot name="head">
+          <div class="head">
+            <div>
+              <h1>{title}</h1>
+              {description && <p>{description}</p>}
+            </div>
+            <div class="head__actions"><slot name="actions" /></div>
+          </div>
+        </slot>
+        <slot />
+      </div>
+    </main>
+
+    <div class="toasts" role="status" aria-live="polite" data-toasts></div>
+
+    <dialog class="dialog" data-confirm-dialog>
+      <form method="dialog">
+        <div class="dialog__body">
+          <Icon name="warning-circle" size={32} />
+          <h2 data-confirm-title>¿Eliminar?</h2>
+          <p data-confirm-text>Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="dialog__actions">
+          <button class="btn btn--quiet" value="cancel">Cancelar</button>
+          <button class="btn btn--primary" value="ok" data-confirm-ok>Eliminar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="palette" data-palette aria-label="Buscar en el panel">
+      <label class="palette__input">
+        <Icon name="magnifying-glass" size={22} />
+        <input type="search" placeholder="Busca un plato, show, sección…" autocomplete="off" data-palette-input aria-controls="palette-list" />
+        <kbd>esc</kbd>
+      </label>
+      <ul class="palette__list" id="palette-list" role="listbox" data-palette-list></ul>
+      <div class="palette__foot"><span>↑↓ para moverte</span><span>↵ para abrir</span></div>
+    </dialog>
+
+    <div class="grain" aria-hidden="true"></div>
+
+    <script>
+      import '../scripts/admin';
+    </script>
+  </body>
+</html>

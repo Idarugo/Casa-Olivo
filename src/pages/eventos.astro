@@ -4,14 +4,18 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Icon from '../components/Icon.astro';
 import ShowCard from '../components/ShowCard.astro';
-import { shows, karaoke, partes, termina } from '../data/eventos';
-import { links } from '../data/site';
+import { partes, termina, clp } from '../lib/format';
+
+const { shows, karaoke, links } = Astro.locals.content!;
 
 const proximos = shows.filter((s) => termina(s.fecha) > Date.now());
 const pasados = shows.filter((s) => termina(s.fecha) <= Date.now());
 const siguiente = proximos[0];
-const final = karaoke.jornadas[karaoke.jornadas.length - 1];
-const fFinal = partes(final.fecha);
+const final = karaoke.jornadas.at(-1);
+const fFinal = final ? partes(final.fecha) : null;
+const premio = karaoke.premios[0];
+const clasificatorias = karaoke.jornadas.filter((j) => j.tipo === 'Clasificatoria').length;
+const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now();
 ---
 
 <Base
@@ -91,6 +95,7 @@ const fFinal = partes(final.fecha);
       </div>
     </section>
 
+    {conKaraoke && (
     <section class="kt" aria-labelledby="kt-t">
       <div class="wrap kt__inner">
         <div class="kt__mic" aria-hidden="true" data-reveal><Icon name="microphone-stage" size={64} /></div>
@@ -98,8 +103,10 @@ const fFinal = partes(final.fecha);
           <span class="eyebrow" data-reveal>{karaoke.edicion}</span>
           <h2 id="kt-t" data-reveal style="--d:80ms">Concurso de karaoke</h2>
           <p data-reveal style="--d:160ms">
-            {karaoke.lema}. Tres noches clasificatorias y una gran final el {fFinal.semana} {fFinal.dia} de {fFinal.mes}, con
-            $200.000 en efectivo para quien gane.
+            {karaoke.lema && `${karaoke.lema}. `}
+            {clasificatorias > 0 && `${clasificatorias === 1 ? 'Una noche clasificatoria' : `${clasificatorias} noches clasificatorias`} y `}
+            {fFinal && `una gran final el ${fFinal.semana} ${fFinal.dia} de ${fFinal.mes}`}
+            {premio && `, con ${clp(premio.monto)} en efectivo para quien gane`}.
           </p>
           <div class="kt__ctas" data-reveal style="--d:240ms">
             <a class="btn btn--primary" href="/karaoke#inscripcion">Inscríbete gratis</a>
@@ -108,6 +115,7 @@ const fFinal = partes(final.fecha);
         </div>
       </div>
     </section>
+    )}
 
     {
       pasados.length > 0 && (

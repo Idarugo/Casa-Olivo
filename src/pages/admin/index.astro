@@ -1,0 +1,558 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { collections } from '../../lib/schema';
+import { listEntries, recent, counts } from '../../lib/repo';
+import { partes, termina } from '../../lib/format';
+
+const user = Astro.locals.user!;
+const now = Date.now();
+const [shows, jornadas, platos, cambios, n] = await Promise.all([
+  listEntries('shows'),
+  listEntries('karaoke_jornadas'),
+  listEntries('carta_platos'),
+  recent(7),
+  counts(),
+]);
+
+const hora = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Santiago', hour: 'numeric', hourCycle: 'h23' }).format(now));
+const saludo = hora < 12 ? 'Buenos días' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
+const hoy = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long' }).format(now);
+const nombre = user.name.split(/\s+/)[0];
+
+const agenda = [
+  ...shows.filter((s) => s.data.fecha && termina(s.data.fecha) > now).map((s) => ({ t: s.data.artista, tipo: 'Show', fecha: s.data.fecha, href: `/admin/shows/${s.id}`, img: s.data.poster?.src, icon: 'ticket' })),
+  ...jornadas
+    .filter((j) => j.data.fecha && termina(j.data.fecha) > now)
+    .map((j) => ({ t: `Karaoke · ${j.data.tipo}`, tipo: 'Karaoke', fecha: j.data.fecha, href: `/admin/karaoke_jornadas/${j.id}`, img: null, icon: 'microphone-stage' })),
+].sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+const dias = (iso: string) => {
+  const d = Math.round((new Date(iso).getTime() - now) / 864e5);
+  return d <= 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`;
+};
+const hace = (iso: string) => {
+  const m = Math.round((now - new Date(iso).getTime()) / 60000);
+  if (m < 1) return 'recién';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'ayer' : `hace ${d} días`;
+};
+
+const visibles = platos.filter((p) => !p.data.oculto).length;
+const ocultos = platos.length - visibles;
+const ultima = cambios[0];
+
+const accesos = ['carta_platos', 'shows', 'escenas', 'karaoke_jornadas'].map((k) => collections.find((c) => c.key === k)!);
+const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
+---
+
+<Admin title="Resumen" current="resumen">
+  <Fragment slot="head">
+    <section class="hero">
+      <img class="hero__bg" src="/img/letrero-noche-sm.webp" alt="" aria-hidden="true" />
+      <div class="hero__content">
+        <span class="eyebrow">{hoy}</span>
+        <h1>{saludo}, {nombre}</h1>
+        <p>
+          {welcome ? 'Tu panel está listo. Desde aquí controlas todo lo que se ve en el sitio.' : 'Esto es lo que está pasando en la casona.'}
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="/admin/carta_platos/nuevo"><Icon name="plus" size={18} /> Agregar plato</a>
+          <a class="btn btn--ghost" href="/admin/shows/nuevo"><Icon name="ticket" size={18} /> Nuevo show</a>
+          <a class="btn btn--ghost" href="/" target="_blank" rel="noopener"><Icon name="arrow-square-out" size={18} /> Ver sitio</a>
+        </div>
+      </div>
+    </section>
+  </Fragment>
+
+  <div class="stats">
+    <a class="stat" href="/admin/carta_platos" style="--d:0ms">
+      <Icon name="fork-knife" size={22} />
+      <strong data-count={visibles}>{visibles}</strong>
+      <span>platos y tragos en la carta</span>
+      {ocultos > 0 && <small>{ocultos} ocultos</small>}
+    </a>
+    <a class="stat" href="/admin/shows" style="--d:80ms">
+      <Icon name="ticket" size={22} />
+      <strong data-count={agenda.filter((a) => a.tipo === 'Show').length}>{agenda.filter((a) => a.tipo === 'Show').length}</strong>
+      <span>shows por delante</span>
+      {agenda.find((a) => a.tipo === 'Show') && <small>el próximo {dias(agenda.find((a) => a.tipo === 'Show')!.fecha)}</small>}
+    </a>
+    <a class="stat" href="/admin/karaoke_jornadas" style="--d:160ms">
+      <Icon name="microphone-stage" size={22} />
+      <strong data-count={agenda.filter((a) => a.tipo === 'Karaoke').length}>{agenda.filter((a) => a.tipo === 'Karaoke').length}</strong>
+      <span>noches de karaoke pendientes</span>
+      {agenda.find((a) => a.tipo === 'Karaoke') && <small>la próxima {dias(agenda.find((a) => a.tipo === 'Karaoke')!.fecha)}</small>}
+    </a>
+    <div class="stat" style="--d:240ms">
+      <Icon name="clock" size={22} />
+      <strong class="stat__text">{ultima ? hace(ultima.updated_at) : 'Sin cambios'}</strong>
+      <span>última edición</span>
+      <small>{n.carta_categorias ?? 0} categorías · {n.faqs ?? 0} preguntas</small>
+    </div>
+  </div>
+
+  <div class="dash">
+    <section class="card">
+      <div class="card__head">
+        <h2>Próximamente</h2>
+        <a class="btn btn--quiet btn--sm" href="/admin/shows/nuevo"><Icon name="plus" size={16} /> Show</a>
+      </div>
+      <div class="card__body">
+        {
+          agenda.length === 0 ? (
+            <div class="empty-state">
+              <Icon name="calendar-dots" size={32} />
+              <h2>La agenda está libre</h2>
+              <p>Agrega un show y aparecerá en el inicio y en eventos.</p>
+            </div>
+          ) : (
+            <ol class="agenda">
+              {agenda.slice(0, 6).map((a, i) => {
+                const p = partes(a.fecha);
+                return (
+                  <li class:list={{ 'is-next': i === 0 }}>
+                    <a href={a.href}>
+                      <span class="agenda__date">
+                        <strong>{p.dia}</strong>
+                        <span>{p.mesCorto}</span>
+                      </span>
+                      <span class="agenda__info">
+                        <strong>{a.t}</strong>
+                        <span>
+                          {p.semana}, {p.hora} hrs · {dias(a.fecha)}
+                        </span>
+                      </span>
+                      {a.img ? <img src={a.img} alt="" loading="lazy" /> : <Icon name={a.icon} size={22} />}
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          )
+        }
+      </div>
+    </section>
+
+    <section class="card preview">
+      <div class="card__head">
+        <h2>Tu sitio ahora</h2>
+        <div class="chips" role="tablist" aria-label="Página de vista previa">
+          <button class="chip" type="button" aria-pressed="true" data-preview="/">Inicio</button>
+          <button class="chip" type="button" aria-pressed="false" data-preview="/carta">Carta</button>
+          <button class="chip" type="button" aria-pressed="false" data-preview="/eventos">Eventos</button>
+        </div>
+      </div>
+      <div class="card__body">
+        <div class="browser">
+          <div class="browser__bar">
+            <i></i><i></i><i></i>
+            <span data-preview-url>casaolivorestaurante.cl</span>
+          </div>
+          <div class="browser__view">
+            <iframe src="/" title="Vista previa del sitio" loading="lazy" tabindex="-1" data-preview-frame></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head"><h2>Cambios recientes</h2></div>
+      <div class="card__body">
+        <ol class="timeline">
+          {
+            cambios.map((c) => {
+              const col = collections.find((x) => x.key === c.collection);
+              if (!col) return null;
+              return (
+                <li>
+                  <a href={`/admin/${col.key}/${c.id}`}>
+                    <span class="timeline__icon">
+                      <Icon name={col.icon} size={16} />
+                    </span>
+                    <span>
+                      <strong>{String(c.data[col.title] ?? '').split('\n')[0] || 'Sin título'}</strong>
+                      <small>
+                        {col.label} · {hace(c.updated_at)}
+                      </small>
+                    </span>
+                  </a>
+                </li>
+              );
+            })
+          }
+        </ol>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card__head"><h2>Accesos rápidos</h2></div>
+      <div class="card__body quick">
+        {
+          accesos.map((c) => (
+            <a href={`/admin/${c.key}`}>
+              <Icon name={c.icon} size={22} />
+              <strong>{c.label}</strong>
+              <small>{c.description}</small>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</Admin>
+
+<script>
+  // Vista previa: cambia la página mostrada en el navegador en miniatura
+  const frame = document.querySelector<HTMLIFrameElement>('[data-preview-frame]');
+  const url = document.querySelector<HTMLElement>('[data-preview-url]');
+  document.querySelectorAll<HTMLButtonElement>('[data-preview]').forEach((b) =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-preview]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      if (frame) frame.src = b.dataset.preview!;
+      if (url) url.textContent = 'casaolivorestaurante.cl' + (b.dataset.preview === '/' ? '' : b.dataset.preview);
+    }),
+  );
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--s-400);
+    padding: var(--s-600) var(--s-500);
+    border-radius: var(--r-3xl);
+    isolation: isolate;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% 40%;
+    animation: heroDrift 24s var(--ease) infinite alternate;
+  }
+  @keyframes heroDrift {
+    to {
+      transform: scale(1.1) translateX(-2%);
+    }
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(90deg, rgba(19, 18, 9, 0.95) 0%, rgba(19, 18, 9, 0.75) 45%, rgba(19, 18, 9, 0.35) 100%);
+  }
+  .hero__content {
+    max-width: 560px;
+    animation: rise 700ms var(--ease) both;
+  }
+  .hero__content > * + * {
+    margin-top: var(--s-200);
+  }
+  .hero .eyebrow {
+    text-transform: capitalize;
+    letter-spacing: 0.08em;
+  }
+  .hero h1 {
+    font-size: 3rem;
+    line-height: 1;
+    background: linear-gradient(90deg, #ffffff 0%, #c9bfae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-bottom: 0.08em;
+  }
+  .hero p {
+    color: var(--ink-soft);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-100);
+    padding-top: var(--s-100);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--s-200);
+    margin-bottom: var(--s-300);
+  }
+  .stat {
+    display: grid;
+    gap: var(--s-50);
+    padding: var(--s-300);
+    border-radius: var(--r-2xl);
+    background: var(--bg-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-decoration: none;
+    animation: rise 700ms var(--ease) both;
+    animation-delay: var(--d);
+    transition:
+      transform 500ms var(--ease),
+      box-shadow 300ms var(--ease);
+  }
+  a.stat:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.4);
+  }
+  .stat > .icon {
+    color: var(--terracota);
+    margin-bottom: var(--s-100);
+  }
+  .stat strong {
+    font-size: 3rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat strong.stat__text {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  .stat span {
+    color: var(--ink-soft);
+  }
+  .stat small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #ffb48f;
+  }
+
+  .dash {
+    display: grid;
+    gap: var(--s-300);
+  }
+  @media (min-width: 1100px) {
+    .dash {
+      grid-template-columns: 1fr 1.25fr;
+    }
+  }
+
+  .agenda {
+    display: grid;
+    gap: var(--s-75);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .agenda a {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+    padding: var(--s-100);
+    border-radius: var(--r-xl);
+    text-decoration: none;
+    transition: background-color 300ms var(--ease);
+  }
+  .agenda a:hover {
+    background: rgba(240, 231, 215, 0.04);
+  }
+  .agenda__date {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--r-xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .agenda__date strong {
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+  }
+  .agenda__date span {
+    margin-top: -4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+  }
+  .is-next .agenda__date {
+    background: var(--terracota);
+    color: var(--terracota-ink);
+    box-shadow: none;
+  }
+  .is-next .agenda__date span {
+    color: var(--terracota-ink);
+  }
+  .agenda__info {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+  }
+  .agenda__info strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agenda__info span {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  .agenda img {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-lg);
+    object-fit: cover;
+  }
+  .agenda a > .icon {
+    color: var(--ink-soft);
+    margin-right: var(--s-100);
+  }
+
+  .preview .card__head {
+    flex-wrap: wrap;
+  }
+  .browser {
+    overflow: hidden;
+    border-radius: var(--r-xl);
+    background: #0e0d07;
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 30px 60px rgba(0, 0, 0, 0.35);
+  }
+  .browser__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+    padding: var(--s-100) var(--s-200);
+    border-bottom: 1px solid var(--line);
+  }
+  .browser__bar i {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--r-full);
+    background: rgba(240, 231, 215, 0.15);
+  }
+  .browser__bar span {
+    flex: 1;
+    margin-left: var(--s-100);
+    padding: var(--s-25) var(--s-100);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .browser__view {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+  }
+  .browser__view iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 250%;
+    height: 250%;
+    border: 0;
+    transform: scale(0.4);
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+
+  .timeline {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .timeline li + li {
+    border-top: 1px solid var(--line);
+  }
+  .timeline a {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+    padding: var(--s-100) 0;
+    text-decoration: none;
+  }
+  .timeline__icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-full);
+    background: rgba(244, 123, 68, 0.12);
+    color: var(--terracota);
+  }
+  .timeline strong {
+    display: block;
+    font-weight: 500;
+  }
+  .timeline small {
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+  }
+  .timeline a:hover strong {
+    color: var(--terracota);
+  }
+
+  .quick {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--s-100);
+  }
+  .quick a {
+    display: grid;
+    gap: var(--s-50);
+    padding: var(--s-200);
+    border-radius: var(--r-xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-decoration: none;
+    transition:
+      transform 500ms var(--ease),
+      box-shadow 300ms var(--ease);
+  }
+  .quick a:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.4);
+  }
+  .quick .icon {
+    color: var(--terracota);
+  }
+  .quick small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  @media (max-width: 767px) {
+    .hero {
+      padding: var(--s-400) var(--s-300);
+    }
+    .hero h1 {
+      font-size: 2.25rem;
+      line-height: 2.5rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__bg {
+      animation: none;
+    }
+  }
+</style>

@@ -149,35 +149,3 @@ export const bases: { t: string; p?: string[]; li?: string[] }[] = [
     p: ['La organización se reserva el derecho de resolver situaciones no contempladas en estas bases, ajustar aspectos operativos del concurso y realizar modificaciones que contribuyan a su correcto desarrollo. Sus decisiones serán inapelables.'],
   },
 ];
-
-const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-
-/** Partes de una fecha en hora de Chile, sin depender de la zona del servidor. */
-export function partes(iso: string) {
-  const d = new Date(iso);
-  const f = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Santiago',
-    weekday: 'short',
-    day: 'numeric',
-    month: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(d);
-  const get = (t: string) => f.find((p) => p.type === t)!.value;
-  const wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
-  return {
-    dia: Number(get('day')),
-    mes: meses[Number(get('month')) - 1],
-    mesCorto: meses[Number(get('month')) - 1].slice(0, 3),
-    semana: dias[wd],
-    hora: `${get('hour')}:${get('minute')}`,
-  };
-}
-
-/** Fin aproximado de un evento: tres horas después de empezar. */
-export const termina = (iso: string) => new Date(iso).getTime() + 3 * 60 * 60 * 1000;
-
-export const proximos = (now = Date.now()) => shows.filter((s) => termina(s.fecha) > now);
-export const pasados = (now = Date.now()) => shows.filter((s) => termina(s.fecha) <= now);

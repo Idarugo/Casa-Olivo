@@ -3,11 +3,12 @@ import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Icon from '../components/Icon.astro';
-import { karaoke, bases, partes, termina } from '../data/eventos';
+import { partes, termina } from '../lib/format';
 
+const { karaoke, bases } = Astro.locals.content!;
 const iconos = ['ticket', 'users-three', 'clock', 'qr-code'];
-const ultimaClasificatoria = karaoke.jornadas.filter((j) => j.tipo === 'Clasificatoria').at(-1)!;
-const cierre = termina(ultimaClasificatoria.fecha);
+const ultimaClasificatoria = karaoke.jornadas.filter((j) => j.tipo === 'Clasificatoria').at(-1) ?? karaoke.jornadas.at(-1);
+const cierre = ultimaClasificatoria ? termina(ultimaClasificatoria.fecha) : 0;
 const formEmbed = `${karaoke.form}?embedded=true`;
 ---
 
@@ -45,7 +46,7 @@ const formEmbed = `${karaoke.form}?embedded=true`;
         {
           karaoke.datos.map((d, i) => (
             <li data-reveal style={`--d:${i * 80}ms`}>
-              <Icon name={iconos[i]} size={24} />
+              <Icon name={iconos[i % iconos.length]} size={24} />
               <h2>{d.t}</h2>
               <p>{d.d}</p>
             </li>

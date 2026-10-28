@@ -1,15 +1,17 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
-import { links } from '../data/site';
-import { shows, termina, partes } from '../data/eventos';
+import { termina, partes } from '../lib/format';
+
+const { links, shows, karaoke, general } = Astro.locals.content!;
+const karaokeVigente = karaoke.activo && karaoke.jornadas.some((j) => termina(j.fecha) > Date.now());
 
 // Enlace de la bio de Instagram. Mantiene los botones del sitio anterior.
 const principales = [
   { label: 'Reserva tu mesa', href: links.reserva, icon: 'calendar-check', primary: true },
   { label: 'Carta', href: links.carta, icon: 'fork-knife' },
   { label: 'Eventos y shows', href: '/eventos', icon: 'music-notes' },
-  { label: 'Concurso de karaoke', href: '/karaoke', icon: 'microphone-stage' },
+  ...(karaokeVigente ? [{ label: 'Concurso de karaoke', href: '/karaoke', icon: 'microphone-stage' }] : []),
   { label: 'Horarios y ubicación', href: '/#visita', icon: 'map-pin' },
   { label: 'Pedidos y retiro por WhatsApp', href: links.whatsapp, icon: 'whatsapp-logo', external: true },
 ];
@@ -76,7 +78,7 @@ const entradas = shows.filter((s) => termina(s.fecha) > Date.now());
 
       <a class="lk__ig" href={links.instagram} target="_blank" rel="noopener">
         <Icon name="instagram-logo" size={20} />
-        @casaolivorestaurante
+        @{String(general.instagram).replace(/^@/, '')}
       </a>
     </div>
   </main>

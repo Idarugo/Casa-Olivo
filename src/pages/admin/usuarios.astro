@@ -1,0 +1,184 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { query } from '../../lib/db';
+import { createUser, setPassword, validatePassword } from '../../lib/auth';
+
+const me = Astro.locals.user!;
+let error = '';
+let errorForm = '';
+const nuevo = { name: '', email: '' };
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action'));
+
+  if (action === 'create') {
+    errorForm = 'create';
+    nuevo.name = String(form.get('name') ?? '').trim();
+    nuevo.email = String(form.get('email') ?? '').trim().toLowerCase();
+    const pw = String(form.get('password') ?? '');
+    if (!nuevo.name) error = 'Escribe el nombre de la persona.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevo.email)) error = 'Escribe un correo válido.';
+    else if ((await query('select 1 from users where email = $1', [nuevo.email])).length) error = 'Ya existe un usuario con ese correo.';
+    else error = validatePassword(pw) ?? '';
+    if (!error) {
+      await createUser(nuevo.email, nuevo.name, pw);
+      return Astro.redirect('/admin/usuarios?ok=creado');
+    }
+  }
+
+  if (action === 'password') {
+    errorForm = 'password';
+    const pw = String(form.get('password') ?? '');
+    error = validatePassword(pw) ?? (pw !== String(form.get('confirm') ?? '') ? 'Las contraseñas no coinciden.' : '');
+    if (!error) {
+      await setPassword(me.id, pw);
+      return Astro.redirect('/admin/login?salio=1');
+    }
+  }
+
+  if (action === 'delete') {
+    const id = Number(form.get('id'));
+    if (id === me.id) error = 'No puedes eliminar tu propia cuenta.';
+    else {
+      await query('delete from users where id = $1', [id]);
+      return Astro.redirect('/admin/usuarios?ok=eliminado');
+    }
+  }
+  if (error) Astro.response.status = 422;
+}
+
+const users = await query<{ id: number; name: string; email: string; created_at: string }>('select id, name, email, created_at from users order by created_at');
+const fecha = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium' }).format(new Date(d));
+const initials = (n: string) =>
+  n
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+---
+
+<Admin title="Usuarios" description="Personas que pueden entrar al panel. Todas tienen los mismos permisos." crumbs={[{ label: 'Cuenta' }, { label: 'Usuarios' }]} current="usuarios">
+  <div class="users">
+    <div class="card">
+      <ul class="rows">
+        {
+          users.map((u) => (
+            <li class="row">
+              <span class="avatar" aria-hidden="true">
+                {initials(u.name)}
+              </span>
+              <span class="row__main">
+                <span class="row__title">
+                  {u.name}
+                  {u.id === me.id && <span class="badge badge--ok">Tú</span>}
+                </span>
+                <span class="row__meta">
+                  {u.email} · desde {fecha(u.created_at)}
+                </span>
+              </span>
+              {u.id !== me.id && (
+                <form method="post" class="row__actions">
+                  <input type="hidden" name="id" value={u.id} />
+                  <button
+                    class="icon-btn icon-btn--danger"
+                    type="submit"
+                    name="_action"
+                    value="delete"
+                    aria-label={`Eliminar a ${u.name}`}
+                    data-confirm={`¿Quitar el acceso de ${u.name}?`}
+                    data-confirm-text="Ya no podrá entrar al panel. Lo que haya editado se mantiene."
+                  >
+                    <Icon name="trash" size={18} />
+                  </button>
+                </form>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="users__forms">
+      <form method="post" class="card card__body users__form" autocomplete="off">
+        <h2>Invitar a alguien</h2>
+        <p class="field__help">Crea su cuenta y compártele la contraseña por un canal privado. Podrá cambiarla al entrar.</p>
+        {
+          error && errorForm === 'create' && (
+            <p class="field__error" role="alert">
+              <Icon name="warning-circle" size={16} /> {error}
+            </p>
+          )
+        }
+        <div class="field">
+          <label class="field__label" for="u-name">Nombre</label>
+          <input class="input" id="u-name" name="name" required value={nuevo.name} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="u-email">Correo</label>
+          <input class="input" id="u-email" name="email" type="email" required value={nuevo.email} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="u-pw">Contraseña inicial</label>
+          <input class="input" id="u-pw" name="password" type="password" minlength="10" autocomplete="new-password" required />
+          <p class="field__help">Al menos 10 caracteres.</p>
+        </div>
+        <button class="btn btn--primary" type="submit" name="_action" value="create">
+          <Icon name="plus" size={18} /> Crear usuario
+        </button>
+      </form>
+
+      <form method="post" class="card card__body users__form">
+        <h2>Cambiar mi contraseña</h2>
+        <p class="field__help">Se cerrarán tus sesiones abiertas y tendrás que entrar de nuevo.</p>
+        {
+          error && errorForm === 'password' && (
+            <p class="field__error" role="alert">
+              <Icon name="warning-circle" size={16} /> {error}
+            </p>
+          )
+        }
+        <input type="email" name="username" value={me.email} autocomplete="username" hidden />
+        <div class="field">
+          <label class="field__label" for="p-new">Nueva contraseña</label>
+          <input class="input" id="p-new" name="password" type="password" minlength="10" autocomplete="new-password" required />
+        </div>
+        <div class="field">
+          <label class="field__label" for="p-confirm">Repite la contraseña</label>
+          <input class="input" id="p-confirm" name="confirm" type="password" minlength="10" autocomplete="new-password" required />
+        </div>
+        <button class="btn btn--quiet" type="submit" name="_action" value="password">Cambiar contraseña</button>
+      </form>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .users {
+    display: grid;
+    gap: var(--s-300);
+    align-items: start;
+  }
+  .users__forms {
+    display: grid;
+    gap: var(--s-300);
+  }
+  .users__form {
+    display: grid;
+    gap: var(--s-200);
+  }
+  .users__form h2 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .users__form .btn {
+    justify-self: start;
+  }
+  @media (min-width: 1000px) {
+    .users {
+      grid-template-columns: 1fr 360px;
+    }
+  }
+</style>

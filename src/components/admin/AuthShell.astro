@@ -1,0 +1,215 @@
+---
+import '../../styles/global.css';
+import '../../styles/admin.css';
+
+type Props = { title: string };
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Panel Casa Olivo</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="theme-color" content="#131209" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="admin auth">
+    <div class="auth__media" aria-hidden="true">
+      <img src="/img/letrero-noche.webp" alt="" />
+      <div class="auth__quote">
+        <p>“Cada comida es una invitación a recordar lo que somos.”</p>
+        <span>Casa Olivo · Olivar</span>
+      </div>
+    </div>
+    <main class="auth__panel" id="contenido">
+      <div class="auth__card">
+        <img class="auth__logo" src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" />
+        <slot />
+      </div>
+      <a class="auth__back" href="/">Volver al sitio</a>
+    </main>
+    <div class="grain" aria-hidden="true"></div>
+
+    <script>
+      // Mostrar u ocultar contraseñas
+      document.querySelectorAll<HTMLButtonElement>('[data-reveal-pw]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const input = b.parentElement!.querySelector('input')!;
+          const show = input.type === 'password';
+          input.type = show ? 'text' : 'password';
+          b.setAttribute('aria-pressed', String(show));
+          b.textContent = show ? 'Ocultar' : 'Mostrar';
+        }),
+      );
+      // Evita envíos dobles
+      document.querySelectorAll('form').forEach((f) =>
+        f.addEventListener('submit', () => f.querySelector('button[type=submit]')?.classList.add('is-busy')),
+      );
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .auth {
+    display: grid;
+    min-height: 100svh;
+  }
+  .auth__media {
+    position: relative;
+    display: none;
+    overflow: hidden;
+  }
+  .auth__media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 58% 40%;
+    animation: authZoom 18s var(--ease) infinite alternate;
+  }
+  @keyframes authZoom {
+    to {
+      transform: scale(1.12);
+    }
+  }
+  .auth__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(19, 18, 9, 0.9) 0%, rgba(19, 18, 9, 0.2) 55%, rgba(19, 18, 9, 0.35) 100%);
+  }
+  .auth__quote {
+    position: absolute;
+    left: var(--s-700);
+    right: var(--s-700);
+    bottom: var(--s-700);
+    z-index: 1;
+  }
+  .auth__quote p {
+    max-width: 22ch;
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .auth__quote span {
+    display: block;
+    margin-top: var(--s-200);
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracota);
+  }
+  .auth__panel {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: var(--s-300);
+    padding: var(--s-600) var(--s-200);
+  }
+  .auth__card {
+    width: 100%;
+    max-width: 400px;
+    animation: authIn 700ms var(--ease);
+  }
+  @keyframes authIn {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  .auth__logo {
+    width: 160px;
+    height: auto;
+    margin-bottom: var(--s-500);
+  }
+  .auth__card h1 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+  .auth__card > p {
+    margin-top: var(--s-75);
+    color: var(--ink-soft);
+  }
+  .auth__form {
+    display: grid;
+    gap: var(--s-300);
+    margin-top: var(--s-500);
+  }
+  .auth__form .btn {
+    justify-content: center;
+    width: 100%;
+  }
+  .pw {
+    position: relative;
+  }
+  .pw .input {
+    padding-right: 96px;
+  }
+  .pw button {
+    position: absolute;
+    right: var(--s-75);
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 32px;
+    padding: 0 var(--s-100);
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .pw button:hover {
+    color: var(--ink);
+    background: rgba(240, 231, 215, 0.06);
+  }
+  .auth__alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-100);
+    margin-top: var(--s-300);
+    padding: var(--s-200);
+    border-radius: var(--r-lg);
+    background: rgba(255, 122, 107, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 122, 107, 0.3);
+    color: #ffb3a9;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .auth__alert--ok {
+    background: rgba(143, 191, 127, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(143, 191, 127, 0.3);
+    color: var(--ok);
+  }
+  .auth__back {
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  .auth__back:hover {
+    color: var(--ink);
+  }
+  @media (min-width: 960px) {
+    .auth {
+      grid-template-columns: 1.15fr 1fr;
+    }
+    .auth__media {
+      display: block;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .auth__media img {
+      animation: none;
+    }
+  }
+</style>

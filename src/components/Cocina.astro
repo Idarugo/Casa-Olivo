@@ -1,8 +1,8 @@
 ---
-import { links } from '../data/site';
 import Icon from './Icon.astro';
 
-const valores = ['Tradición', 'Producto de estación', 'Identidad chilena', 'Hecho al momento', 'Recetas de casa'];
+const { links, inicio } = Astro.locals.content!;
+const valores: string[] = inicio.valores ?? [];
 ---
 
 <section class="cocina" id="carta" data-cocina aria-labelledby="cocina-title">
@@ -38,14 +38,15 @@ const valores = ['Tradición', 'Producto de estación', 'Identidad chilena', 'He
 
     <div class="cocina__text">
       <span class="eyebrow" data-reveal>La carta</span>
-      <h2 id="cocina-title" data-reveal style="--d:80ms">Sabores que van a deleitar todos tus sentidos</h2>
-      <p data-reveal style="--d:160ms">
-        Rescatamos el valor de la cocina chilena, esa que nace en las casas, en los campos y en los encuentros familiares. Un
-        espacio donde tradición y creatividad se encuentran para dar vida a una carta que emociona.
-      </p>
-      <p class="cocina__quote" data-reveal style="--d:240ms">
-        Cada comida es una invitación a recordar lo que somos.
-      </p>
+      <h2 id="cocina-title" data-reveal style="--d:80ms">{inicio.cocina_titulo}</h2>
+      {inicio.cocina_texto && <p data-reveal style="--d:160ms">{inicio.cocina_texto}</p>}
+      {
+        inicio.cocina_cita && (
+          <p class="cocina__quote" data-reveal style="--d:240ms">
+            {inicio.cocina_cita}
+          </p>
+        )
+      }
       <div data-reveal style="--d:320ms">
         <a class="btn btn--primary" href={links.carta}>
           Revisa nuestra carta

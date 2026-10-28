@@ -1,16 +1,15 @@
 ---
-import type { Categoria } from '../data/carta';
-import { clp } from '../data/carta';
+import type { Categoria, Precio } from '../lib/content';
+import { clp } from '../lib/format';
 
-type Props = {
-  cat: Categoria;
-  n: number;
-  img?: { src: string; alt: string; cutout?: boolean };
-};
-const { cat, n, img } = Astro.props;
+type Props = { cat: Categoria; n: number };
+const { cat, n } = Astro.props;
 const layout = cat.layout ?? 'lista';
 const pad = (x: number) => String(x).padStart(2, '0');
-const notas = (nota?: string | string[]) => (Array.isArray(nota) ? nota : nota ? [nota] : []);
+const img = cat.imagen ? { src: cat.imagen.sm ?? cat.imagen.src, alt: '', cutout: cat.recorte } : undefined;
+// En categorías con columnas (Botella / Copa) cada precio va bajo su columna
+const enColumna = (precios: Precio[], col: string, k: number) =>
+  precios.find((x) => x.etiqueta?.toLowerCase() === col.toLowerCase()) ?? (precios.every((x) => !x.etiqueta) ? precios[k] : undefined);
 ---
 
 <section class:list={['cat', `cat--${layout}`]} id={cat.id} data-cat aria-labelledby={`${cat.id}-t`}>
@@ -31,7 +30,7 @@ const notas = (nota?: string | string[]) => (Array.isArray(nota) ? nota : nota ?
 
   <div class="cat__body">
     {
-      cat.columnas && (
+      cat.columnas.length > 0 && (
         <div class="cat__cols" aria-hidden="true">
           {cat.columnas.map((c) => (
             <span>{c}</span>
@@ -50,44 +49,43 @@ const notas = (nota?: string | string[]) => (Array.isArray(nota) ? nota : nota ?
           )}
           <ul class="platos">
             {g.platos.map((p) => {
-              const precios = Array.isArray(p.precio) ? p.precio : [p.precio];
-              const ns = notas(p.nota);
-              const multi = precios.length > 1 && ns.length === precios.length;
-              const search = [p.nombre, p.desc, ...ns, cat.titulo, g.titulo, ...(p.tags ?? [])]
+              const cols = cat.columnas.length > 0;
+              const search = [p.nombre, p.desc, p.nota, cat.titulo, g.titulo, ...p.precios.map((x) => x.etiqueta), ...p.tags]
                 .filter(Boolean)
                 .join(' ')
                 .toLowerCase()
                 .normalize('NFD')
-                .replace(/[̀-ͯ]/g, '');
+                .replace(/[\u0300-\u036f]/g, '');
               return (
                 <li class="plato" data-plato data-search={search}>
                   <div class="plato__row">
                     <span class="plato__name">
                       {p.nombre}
-                      {!multi && ns.map((x) => <span class="plato__nota">{x}</span>)}
+                      {p.nota && <span class="plato__nota">{p.nota}</span>}
                     </span>
                     <span class="plato__dots" aria-hidden="true" />
-                    {p.precio !== 0 && (
+                    {p.precios.length > 0 && (
                       <span class="plato__precios">
-                        {multi
-                          ? precios.map((x, k) => (
-                              <span class="plato__precio">
-                                <small>{ns[k]}</small>
-                                {clp(x)}
-                              </span>
-                            ))
-                          : cat.columnas
-                            ? cat.columnas.map((col, k) => (
-                                <span class="plato__precio plato__precio--col" aria-label={`${col}: ${precios[k] ? clp(precios[k]) : 'no disponible'}`}>
-                                  {precios[k] ? clp(precios[k]) : '·'}
+                        {cols
+                          ? cat.columnas.map((col, k) => {
+                              const x = enColumna(p.precios, col, k);
+                              return (
+                                <span class="plato__precio plato__precio--col" aria-label={`${col}: ${x ? clp(x.monto) : 'no disponible'}`}>
+                                  {x ? clp(x.monto) : '·'}
                                 </span>
-                              ))
-                            : precios.map((x) => <span class="plato__precio">{clp(x)}</span>)}
+                              );
+                            })
+                          : p.precios.map((x) => (
+                              <span class="plato__precio">
+                                {x.etiqueta && <small>{x.etiqueta}</small>}
+                                {clp(x.monto)}
+                              </span>
+                            ))}
                       </span>
                     )}
                   </div>
                   {p.desc && <p class="plato__desc">{p.desc}</p>}
-                  {p.tags && (
+                  {p.tags.length > 0 && (
                     <ul class="plato__tags">
                       {p.tags.map((t) => (
                         <li>{t}</li>

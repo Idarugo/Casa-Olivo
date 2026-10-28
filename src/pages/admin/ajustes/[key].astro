@@ -1,0 +1,34 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import AdminForm from '../../../components/admin/AdminForm.astro';
+import { getSingleton } from '../../../lib/schema';
+import { validate, type Errors } from '../../../lib/forms';
+import { getSetting, saveSetting } from '../../../lib/repo';
+import { publicHref } from '../../../lib/admin';
+
+const s = getSingleton(Astro.params.key!);
+if (!s) return new Response(null, { status: 404 });
+
+const current = await getSetting(s.key);
+let data = current.data;
+let errors: Errors = {};
+
+if (Astro.request.method === 'POST') {
+  const res = validate(s.fields, await Astro.request.formData());
+  data = res.data;
+  errors = res.errors;
+  if (res.ok) {
+    await saveSetting(s.key, data);
+    return Astro.redirect(`/admin/ajustes/${s.key}?ok=guardado`);
+  }
+  Astro.response.status = 422;
+}
+
+const updated = current.updated_at
+  ? new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(current.updated_at))
+  : 'Contenido original';
+---
+
+<Admin title={s.label} description={s.description} crumbs={[{ label: s.group }, { label: s.label }]} current={s.key}>
+  <AdminForm fields={s.fields} data={data} errors={errors} meta={[{ label: 'Última edición', value: updated }]} viewHref={publicHref(s.key)} />
+</Admin>

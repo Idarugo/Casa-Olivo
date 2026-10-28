@@ -4,17 +4,11 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Icon from '../components/Icon.astro';
 import CartaCategoria from '../components/CartaCategoria.astro';
-import { cocina, bar, happyHour, clp } from '../data/carta';
-import { links } from '../data/site';
+import { clp } from '../lib/format';
 
-const imgs: Record<string, { src: string; alt: string; cutout?: boolean }> = {
-  entrantes: { src: '/img/ceviche-sm.webp', alt: 'Pocillos de greda con ceviche fresco' },
-  autor: { src: '/img/salon-sm.webp', alt: 'Salón de Casa Olivo con mesas de madera' },
-  tradiciones: { src: '/img/pastel.webp', alt: 'Pastel de choclo gratinado en paila de greda', cutout: true },
-  tablas: { src: '/img/mesa-sm.webp', alt: 'Mesa larga montada junto a la ventana' },
-  aperitivos: { src: '/img/terraza-2-sm.webp', alt: 'Terraza con arcos y olivos' },
-};
-const todas = [...cocina.categorias, { id: 'bar', titulo: 'Happy hour' }, ...bar.categorias];
+const { cocina, bar, happyHour, menuEjecutivo: m, links } = Astro.locals.content!;
+const conHappy = happyHour.tragos.length > 0;
+const todas = [...cocina, ...(conHappy ? [{ id: 'bar', titulo: 'Happy hour' }] : []), ...bar];
 ---
 
 <Base
@@ -87,22 +81,23 @@ const todas = [...cocina.categorias, { id: 'bar', titulo: 'Happy hour' }, ...bar
         <aside class="ejec" data-reveal data-plato data-search="menu ejecutivo almuerzo entrada fondo postre cafe infusion">
           <div>
             <span class="eyebrow">Menú ejecutivo</span>
-            <p class="ejec__price">$9.900</p>
+            <p class="ejec__price">{clp(Number(m.precio ?? 0))}</p>
           </div>
           <div class="ejec__info">
-            <p class="ejec__tiempos">Entrada · Fondo · Postre · Infusión o café</p>
+            <p class="ejec__tiempos">{(m.tiempos ?? []).join(' · ')}</p>
             <p class="ejec__when">
               <Icon name="clock" size={18} />
-              Miércoles a viernes, 12:30 a 17:00
+              {m.dias}, {m.horas}
             </p>
-            <p class="ejec__note">Consulta por las opciones disponibles cada día.</p>
+            {m.nota && <p class="ejec__note">{m.nota}</p>}
           </div>
         </aside>
 
-        {cocina.categorias.map((c, i) => <CartaCategoria cat={c} n={i + 1} img={imgs[c.id]} />)}
+        {cocina.map((c, i) => <CartaCategoria cat={c} n={i + 1} />)}
       </div>
 
       <!-- HAPPY HOUR -->
+      {conHappy && (
       <section class="hh" id="bar" data-sec data-cat aria-labelledby="hh-t">
         <img class="hh__luces" src="/img/luces.webp" alt="" aria-hidden="true" loading="lazy" />
         <div class="hh__head">
@@ -127,12 +122,13 @@ const todas = [...cocina.categorias, { id: 'bar', titulo: 'Happy hour' }, ...bar
             ))
           }
         </ul>
-        <p class="hh__foot">Precio por dos tragos.</p>
+        {happyHour.pie && <p class="hh__foot">{happyHour.pie}</p>}
       </section>
+      )}
 
       <!-- BAR -->
-      <div class="sec" data-sec>
-        {bar.categorias.map((c, i) => <CartaCategoria cat={c} n={cocina.categorias.length + i + 1} img={imgs[c.id]} />)}
+      <div class="sec" data-sec id={conHappy ? undefined : 'bar'}>
+        {bar.map((c, i) => <CartaCategoria cat={c} n={cocina.length + i + 1} />)}
       </div>
     </div>
 

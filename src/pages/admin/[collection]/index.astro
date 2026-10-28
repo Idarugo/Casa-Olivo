@@ -1,0 +1,177 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import Icon from '../../../components/Icon.astro';
+import { getCollection } from '../../../lib/schema';
+import { listEntries, categoriasMap, type Entry } from '../../../lib/repo';
+import { termina } from '../../../lib/format';
+
+const col = getCollection(Astro.params.collection!);
+if (!col) return new Response(null, { status: 404 });
+
+const categorias = col.key === 'carta_platos' ? await categoriasMap() : {};
+let entries = await listEntries(col.key);
+if (col.sortBy) entries = [...entries].sort((a, b) => String(a.data[col.sortBy!] ?? '').localeCompare(String(b.data[col.sortBy!] ?? '')));
+const sortable = !col.sortBy;
+const now = Date.now();
+
+// Platos agrupados por categoría, en el orden de la carta
+type Group = { key: string; label: string; items: Entry[] };
+let grouped: Group[] = [{ key: '', label: '', items: entries }];
+if (col.filter) {
+  const orden = Object.keys(categorias);
+  grouped = orden.map((k) => ({ key: k, label: categorias[k], items: entries.filter((e) => e.data[col.filter!.field] === k) }));
+  const sueltos = entries.filter((e) => !orden.includes(e.data[col.filter!.field]));
+  if (sueltos.length) grouped.push({ key: '_', label: 'Sin categoría', items: sueltos });
+}
+
+const thumbOf = (e: Entry) => {
+  const v = col.thumb ? e.data[col.thumb] : null;
+  return v?.src ? (v.sm ?? v.src) : null;
+};
+const titleOf = (e: Entry) => String(e.data[col.title] || 'Sin título').split('\n').join(' ');
+const searchOf = (e: Entry) =>
+  [titleOf(e), col.meta?.(e.data, { categorias }), e.data.desc]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+---
+
+<Admin title={col.label} description={col.description} crumbs={[{ label: col.group }, { label: col.label }]} current={col.key}>
+  <Fragment slot="actions">
+    <a class="btn btn--primary" href={`/admin/${col.key}/nuevo`}>
+      <Icon name="plus" size={18} />
+      Agregar {col.singular}
+    </a>
+  </Fragment>
+
+  {
+    entries.length === 0 ? (
+      <div class="card">
+        <div class="empty-state">
+          <Icon name={col.icon} size={40} />
+          <h2>Todavía no hay {col.label.toLowerCase()}</h2>
+          <p>Agrega el primero y aparecerá en el sitio al guardar.</p>
+          <a class="btn btn--primary" href={`/admin/${col.key}/nuevo`}>
+            <Icon name="plus" size={18} /> Agregar {col.singular}
+          </a>
+        </div>
+      </div>
+    ) : (
+      <>
+        <div class="toolbar">
+          <label class="search">
+            <Icon name="magnifying-glass" size={18} />
+            <span class="sr-only">Buscar</span>
+            <input type="search" placeholder={`Buscar en ${col.label.toLowerCase()}…`} data-list-search autocomplete="off" />
+          </label>
+          {col.filter && (
+            <div class="chips" role="group" aria-label={col.filter.label}>
+              <button class="chip" type="button" aria-pressed="true" data-list-chip="">
+                Todas <small>{entries.length}</small>
+              </button>
+              {grouped
+                .filter((g) => g.items.length)
+                .map((g) => (
+                  <button class="chip" type="button" aria-pressed="false" data-list-chip={g.key}>
+                    {g.label} <small>{g.items.length}</small>
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+
+        <div class="card">
+          <ul class="rows" data-rows data-collection={col.key} data-sortable={sortable ? '' : undefined}>
+            {grouped.map((g) => (
+              <>
+                {g.label && g.items.length > 0 && (
+                  <li class="rows__group" data-group-label={g.key}>
+                    {g.label}
+                  </li>
+                )}
+                {g.items.map((e) => {
+                  const thumb = thumbOf(e);
+                  const pasado = col.key === 'shows' && e.data.fecha && termina(e.data.fecha) < now;
+                  const proximo = col.key === 'shows' && e.data.fecha && !pasado;
+                  return (
+                    <li class="row" data-row data-id={e.id} data-group={g.key} data-search={searchOf(e)} draggable={sortable ? 'true' : undefined}>
+                      {sortable && (
+                        <span class="row__handle" data-handle title="Arrastra para ordenar" aria-hidden="true">
+                          <Icon name="dots-six-vertical" size={18} />
+                        </span>
+                      )}
+                      {col.thumb &&
+                        (thumb ? (
+                          <img class="row__thumb" src={thumb} alt="" loading="lazy" />
+                        ) : (
+                          <span class="row__thumb row__thumb--empty">
+                            <Icon name="image" size={20} />
+                          </span>
+                        ))}
+                      <a class="row__main" href={`/admin/${col.key}/${e.id}`}>
+                        <span class="row__title">
+                          {titleOf(e)}
+                          {e.data.oculto && <span class="badge badge--warn">Oculto</span>}
+                          {pasado && <span class="badge">Pasado</span>}
+                          {proximo && <span class="badge badge--ok">Próximo</span>}
+                        </span>
+                        {col.meta && <span class="row__meta">{col.meta(e.data, { categorias })}</span>}
+                      </a>
+                      <div class="row__actions">
+                        {sortable && (
+                          <>
+                            <button class="icon-btn" type="button" data-move="up" aria-label="Subir">
+                              <Icon name="arrow-up" size={16} />
+                            </button>
+                            <button class="icon-btn" type="button" data-move="down" aria-label="Bajar">
+                              <Icon name="arrow-down" size={16} />
+                            </button>
+                          </>
+                        )}
+                        <a class="icon-btn" href={`/admin/${col.key}/${e.id}`} aria-label="Editar" title="Editar">
+                          <Icon name="pencil-simple" size={18} />
+                        </a>
+                        <form method="post" action={`/admin/${col.key}/${e.id}`}>
+                          <button
+                            class="icon-btn icon-btn--danger"
+                            type="submit"
+                            name="_action"
+                            value="delete"
+                            aria-label="Eliminar"
+                            title="Eliminar"
+                            data-confirm={`¿Eliminar “${titleOf(e)}”?`}
+                            data-confirm-text="Desaparece del sitio de inmediato y no se puede deshacer."
+                          >
+                            <Icon name="trash" size={18} />
+                          </button>
+                        </form>
+                      </div>
+                    </li>
+                  );
+                })}
+              </>
+            ))}
+          </ul>
+          <div class="empty-state" data-list-empty hidden>
+            <Icon name="magnifying-glass" size={32} />
+            <h2>Sin resultados</h2>
+            <p>Prueba con otra palabra.</p>
+          </div>
+        </div>
+        {sortable && <p class="field__help" style="margin-top:var(--s-200)">Arrastra las filas o usa las flechas para cambiar el orden en el sitio. Se guarda solo.</p>}
+      </>
+    )
+  }
+</Admin>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+</style>

@@ -1,10 +1,15 @@
 ---
-import { shows, karaoke, termina, partes } from '../data/eventos';
 import ShowCard from './ShowCard.astro';
 import Icon from './Icon.astro';
+import { termina, partes, clp } from '../lib/format';
 
+const { shows, karaoke } = Astro.locals.content!;
 const proximos = shows.filter((s) => termina(s.fecha) > Date.now()).slice(0, 2);
-const final = partes(karaoke.jornadas.at(-1)!.fecha);
+const ultima = karaoke.jornadas.at(-1);
+const final = ultima ? partes(ultima.fecha) : null;
+const premio = karaoke.premios[0];
+// El concurso se muestra mientras quede alguna jornada por delante
+const conKaraoke = karaoke.activo && !!ultima && termina(ultima.fecha) > Date.now();
 ---
 
 <section class="ag" id="agenda" aria-labelledby="ag-t">
@@ -28,16 +33,23 @@ const final = partes(karaoke.jornadas.at(-1)!.fecha);
           </div>
         ))
       }
-      <a class="ag__karaoke" href="/karaoke" data-reveal style="--d:200ms">
-        <Icon name="microphone-stage" size={40} />
-        <span class="ag__k-ed">{karaoke.edicion}</span>
-        <strong>Concurso de karaoke</strong>
-        <span>Inscripción gratuita. Gran final el {final.semana} {final.dia} de {final.mes}, con $200.000 para el primer lugar.</span>
-        <span class="ag__k-go">
-          Inscríbete
-          <Icon name="arrow-right" size={18} />
-        </span>
-      </a>
+      {
+        conKaraoke && (
+          <a class="ag__karaoke" href="/karaoke" data-reveal style="--d:200ms">
+            <Icon name="microphone-stage" size={40} />
+            <span class="ag__k-ed">{karaoke.edicion}</span>
+            <strong>Concurso de karaoke</strong>
+            <span>
+              {final && `Gran final el ${final.semana} ${final.dia} de ${final.mes}`}
+              {premio && `, con ${clp(premio.monto)} para el ${premio.lugar.toLowerCase()}`}.
+            </span>
+            <span class="ag__k-go">
+              Inscríbete
+              <Icon name="arrow-right" size={18} />
+            </span>
+          </a>
+        )
+      }
       <p class="ag__empty" data-agenda-empty hidden={proximos.length > 0}>
         Pronto anunciaremos nuevos shows. Síguenos en Instagram para enterarte primero.
       </p>

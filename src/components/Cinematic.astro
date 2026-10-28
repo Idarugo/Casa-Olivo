@@ -1,6 +1,7 @@
 ---
-import { scenes, links } from '../data/site';
 import Icon from './Icon.astro';
+
+const { scenes, links } = Astro.locals.content!;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 ---
@@ -12,8 +13,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
         scenes.map((s, i) => (
           <div class="cine__scene" data-scene style={`--fx:${s.focal[0]}%;--fy:${s.focal[1]}%`}>
             <img
-              src={`/img/${s.img}.webp`}
-              srcset={`/img/${s.img}-sm.webp 900w, /img/${s.img}.webp 1600w`}
+              src={s.img.src}
+              srcset={s.img.sm ? `${s.img.sm} 900w, ${s.img.src} 1600w` : undefined}
               sizes="100vw"
               alt={s.alt}
               loading={i < 2 ? 'eager' : 'lazy'}
@@ -30,16 +31,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
     <div class="cine__copy wrap">
       {
         scenes.map((s, i) => (
-          <article class:list={['cine__chapter', { 'cine__chapter--hero': i === 0 }]} data-copy id={i === 0 ? undefined : s.id}>
+          <article class:list={['cine__chapter', { 'cine__chapter--hero': i === 0 }]} data-copy id={i === 0 ? undefined : s.anchor}>
             {i === 0 ? (
               <>
                 <span class="eyebrow">{s.eyebrow}</span>
                 <h1 class="hero-title">
-                  Cocina chilena
-                  <br />
-                  en una casona
-                  <br />
-                  con más de cien años
+                  {s.title.split('\n').map((line, k) => (
+                    <>
+                      {k > 0 && <br />}
+                      {line}
+                    </>
+                  ))}
                 </h1>
                 <p class="cine__body">{s.body}</p>
                 <div class="cine__ctas">
