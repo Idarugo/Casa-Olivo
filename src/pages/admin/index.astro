@@ -4,14 +4,17 @@ import Icon from '../../components/Icon.astro';
 import { collections } from '../../lib/schema';
 import { listEntries, recent, counts } from '../../lib/repo';
 import { partes, termina } from '../../lib/format';
+import { can } from '../../lib/permissions';
 
 const user = Astro.locals.user!;
 const now = Date.now();
+const verShows = can(user, 'shows');
+const verKaraoke = can(user, 'karaoke_jornadas');
 const [shows, jornadas, platos, cambios, n] = await Promise.all([
   listEntries('shows'),
   listEntries('karaoke_jornadas'),
   listEntries('carta_platos'),
-  recent(7),
+  recent(20),
   counts(),
 ]);
 
@@ -21,8 +24,9 @@ const hoy = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', wee
 const nombre = user.name.split(/\s+/)[0];
 
 const agenda = [
-  ...shows.filter((s) => s.data.fecha && termina(s.data.fecha) > now).map((s) => ({ t: s.data.artista, tipo: 'Show', fecha: s.data.fecha, href: `/admin/shows/${s.id}`, img: s.data.poster?.src, icon: 'ticket' })),
+  ...shows.filter(() => verShows).filter((s) => s.data.fecha && termina(s.data.fecha) > now).map((s) => ({ t: s.data.artista, tipo: 'Show', fecha: s.data.fecha, href: `/admin/shows/${s.id}`, img: s.data.poster?.src, icon: 'ticket' })),
   ...jornadas
+    .filter(() => verKaraoke)
     .filter((j) => j.data.fecha && termina(j.data.fecha) > now)
     .map((j) => ({ t: `Karaoke · ${j.data.tipo}`, tipo: 'Karaoke', fecha: j.data.fecha, href: `/admin/karaoke_jornadas/${j.id}`, img: null, icon: 'microphone-stage' })),
 ].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -41,11 +45,15 @@ const hace = (iso: string) => {
   return d === 1 ? 'ayer' : `hace ${d} días`;
 };
 
+const cambiosVisibles = cambios.filter((c) => can(user, c.collection)).slice(0, 7);
 const visibles = platos.filter((p) => !p.data.oculto).length;
 const ocultos = platos.length - visibles;
-const ultima = cambios[0];
+const ultima = cambiosVisibles[0];
 
-const accesos = ['carta_platos', 'shows', 'escenas', 'karaoke_jornadas'].map((k) => collections.find((c) => c.key === k)!);
+const accesos = ['carta_platos', 'shows', 'escenas', 'karaoke_jornadas', 'happy_hour', 'faqs']
+  .filter((k) => can(user, k))
+  .slice(0, 4)
+  .map((k) => collections.find((c) => c.key === k)!);
 const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
 ---
 
@@ -61,7 +69,7 @@ const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
         </p>
         <div class="hero__actions">
           <a class="btn btn--primary" href="/admin/carta_platos/nuevo"><Icon name="plus" size={18} /> Agregar plato</a>
-          <a class="btn btn--ghost" href="/admin/shows/nuevo"><Icon name="ticket" size={18} /> Nuevo show</a>
+          {verShows && <a class="btn btn--ghost" href="/admin/shows/nuevo"><Icon name="ticket" size={18} /> Nuevo show</a>}
           <a class="btn btn--ghost" href="/" target="_blank" rel="noopener"><Icon name="arrow-square-out" size={18} /> Ver sitio</a>
         </div>
       </div>
@@ -75,18 +83,18 @@ const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
       <span>platos y tragos en la carta</span>
       {ocultos > 0 && <small>{ocultos} ocultos</small>}
     </a>
-    <a class="stat" href="/admin/shows" style="--d:80ms">
+    {verShows && <a class="stat" href="/admin/shows" style="--d:80ms">
       <Icon name="ticket" size={22} />
       <strong data-count={agenda.filter((a) => a.tipo === 'Show').length}>{agenda.filter((a) => a.tipo === 'Show').length}</strong>
       <span>shows por delante</span>
       {agenda.find((a) => a.tipo === 'Show') && <small>el próximo {dias(agenda.find((a) => a.tipo === 'Show')!.fecha)}</small>}
-    </a>
-    <a class="stat" href="/admin/karaoke_jornadas" style="--d:160ms">
+    </a>}
+    {verKaraoke && <a class="stat" href="/admin/karaoke_jornadas" style="--d:160ms">
       <Icon name="microphone-stage" size={22} />
       <strong data-count={agenda.filter((a) => a.tipo === 'Karaoke').length}>{agenda.filter((a) => a.tipo === 'Karaoke').length}</strong>
       <span>noches de karaoke pendientes</span>
       {agenda.find((a) => a.tipo === 'Karaoke') && <small>la próxima {dias(agenda.find((a) => a.tipo === 'Karaoke')!.fecha)}</small>}
-    </a>
+    </a>}
     <div class="stat" style="--d:240ms">
       <Icon name="clock" size={22} />
       <strong class="stat__text">{ultima ? hace(ultima.updated_at) : 'Sin cambios'}</strong>
@@ -96,7 +104,7 @@ const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
   </div>
 
   <div class="dash">
-    <section class="card">
+    {(verShows || verKaraoke) && <section class="card">
       <div class="card__head">
         <h2>Próximamente</h2>
         <a class="btn btn--quiet btn--sm" href="/admin/shows/nuevo"><Icon name="plus" size={16} /> Show</a>
@@ -135,7 +143,7 @@ const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
           )
         }
       </div>
-    </section>
+    </section>}
 
     <section class="card preview">
       <div class="card__head">
@@ -164,7 +172,7 @@ const welcome = Astro.url.searchParams.get('ok') === 'bienvenida';
       <div class="card__body">
         <ol class="timeline">
           {
-            cambios.map((c) => {
+            cambiosVisibles.map((c) => {
               const col = collections.find((x) => x.key === c.collection);
               if (!col) return null;
               return (

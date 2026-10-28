@@ -1,0 +1,137 @@
+---
+import Icon from './Icon.astro';
+
+type Props = { sitio: Record<string, any> };
+const { sitio } = Astro.props;
+const vigente = sitio.aviso_activo && sitio.aviso_texto && (!sitio.aviso_hasta || new Date(sitio.aviso_hasta).getTime() > Date.now());
+// Cada aviso distinto se puede cerrar una vez; si cambia el texto, vuelve a aparecer
+const id = String(sitio.aviso_texto ?? '')
+  .split('')
+  .reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)
+  .toString(36);
+---
+
+{
+  vigente && (
+    <aside class="aviso" data-aviso={id} data-hasta={sitio.aviso_hasta || undefined} role="status" hidden>
+      <span class="aviso__dot" aria-hidden="true" />
+      <p>
+        {sitio.aviso_texto}
+        {sitio.aviso_link && (
+          <a href={sitio.aviso_link} target={sitio.aviso_link.startsWith('/') ? undefined : '_blank'} rel="noopener">
+            {sitio.aviso_link_texto || 'Ver más'}
+          </a>
+        )}
+      </p>
+      <button type="button" aria-label="Cerrar aviso" data-aviso-cerrar>
+        <Icon name="x" size={16} />
+      </button>
+    </aside>
+  )
+}
+
+<script>
+  const el = document.querySelector<HTMLElement>('[data-aviso]');
+  if (el) {
+    const key = `aviso-${el.dataset.aviso}`;
+    let cerrado = false;
+    try {
+      cerrado = localStorage.getItem(key) === '1';
+    } catch {}
+    // La página puede venir de caché: se vuelve a mirar la fecha en el navegador
+    const vencido = el.dataset.hasta && new Date(el.dataset.hasta).getTime() < Date.now();
+    if (!cerrado && !vencido) {
+      el.hidden = false;
+      requestAnimationFrame(() => el.classList.add('is-in'));
+    }
+    el.querySelector('[data-aviso-cerrar]')?.addEventListener('click', () => {
+      el.classList.remove('is-in');
+      setTimeout(() => (el.hidden = true), 400);
+      try {
+        localStorage.setItem(key, '1');
+      } catch {}
+    });
+  }
+</script>
+
+<style>
+  .aviso {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--s-300) + env(safe-area-inset-bottom));
+    z-index: 85;
+    display: flex;
+    align-items: center;
+    gap: var(--s-100);
+    width: max-content;
+    max-width: calc(100% - 2 * var(--s-200));
+    padding: var(--s-75) var(--s-75) var(--s-75) var(--s-200);
+    border-radius: var(--r-full);
+    background: rgba(39, 34, 25, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      inset 0 0 0 1px rgba(244, 123, 68, 0.4),
+      0 20px 50px rgba(0, 0, 0, 0.5);
+    transform: translate(-50%, 140%);
+    opacity: 0;
+    transition:
+      transform 600ms var(--ease),
+      opacity 400ms var(--ease);
+  }
+  .aviso.is-in {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  .aviso__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--terracota);
+    animation: avisoPulse 1.8s var(--ease) infinite;
+  }
+  @keyframes avisoPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(244, 123, 68, 0.6);
+    }
+    100% {
+      box-shadow: 0 0 0 10px rgba(244, 123, 68, 0);
+    }
+  }
+  .aviso p {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+  }
+  .aviso a {
+    margin-left: var(--s-75);
+    color: var(--terracota);
+    font-weight: 600;
+    text-underline-offset: 3px;
+  }
+  .aviso button {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: var(--r-full);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition:
+      color 300ms var(--ease),
+      background-color 300ms var(--ease);
+  }
+  .aviso button:hover {
+    color: var(--ink);
+    background: rgba(240, 231, 215, 0.08);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aviso__dot {
+      animation: none;
+    }
+  }
+</style>

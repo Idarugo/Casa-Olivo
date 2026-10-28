@@ -1,0 +1,209 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import AdminForm from '../../components/admin/AdminForm.astro';
+import Icon from '../../components/Icon.astro';
+import { getSingleton } from '../../lib/schema';
+import { validate, type Errors } from '../../lib/forms';
+import { getSetting, saveSetting } from '../../lib/repo';
+import { checkBackup, importAll } from '../../lib/backup';
+import { query } from '../../lib/db';
+
+const user = Astro.locals.user!;
+const s = getSingleton('sitio')!;
+const current = await getSetting('sitio');
+let data = current.data;
+let errors: Errors = {};
+let errorRespaldo = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (form.get('_action') === 'importar') {
+    const file = form.get('archivo');
+    let parsed: any = null;
+    try {
+      parsed = file instanceof File && file.size ? JSON.parse(await file.text()) : null;
+    } catch {
+      parsed = null;
+    }
+    errorRespaldo = parsed ? (checkBackup(parsed) ?? '') : 'Elige un archivo de respaldo (.json).';
+    if (!errorRespaldo) {
+      await importAll(parsed, user);
+      return Astro.redirect('/admin/configuracion?ok=importado');
+    }
+    Astro.response.status = 422;
+  } else {
+    const res = validate(s.fields, form);
+    data = res.data;
+    errors = res.errors;
+    if (res.ok) {
+      await saveSetting('sitio', data, user);
+      return Astro.redirect('/admin/configuracion?ok=guardado');
+    }
+    Astro.response.status = 422;
+  }
+}
+
+const importaciones = await query<{ id: number; at: string; user_name: string; title: string }>(
+  `select id, at, user_name, title from audit where action = 'backup_import' order by id desc limit 5`,
+);
+const fecha = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d));
+const updated = current.updated_at ? fecha(current.updated_at) : 'Valores iniciales';
+const origen = data.url_sitio ? new URL(data.url_sitio).origin : Astro.url.origin;
+---
+
+<Admin title="Configuración" description={s.description} crumbs={[{ label: 'Administración' }, { label: 'Configuración' }]} current="configuracion">
+  <AdminForm fields={s.fields} data={data} errors={errors} meta={[{ label: 'Última edición', value: updated }]} viewHref="/" historyHref="/admin/historial?seccion=sitio" />
+
+  <section class="config__extra">
+    <div class="card card__body config__card">
+      <span class="config__icon"><Icon name="globe" size={22} /></span>
+      <h2>Buscadores</h2>
+      <p class="field__help">Se generan solos a partir del contenido. Puedes enviar el mapa del sitio a Google Search Console.</p>
+      <div class="config__links">
+        <a class="btn btn--quiet btn--sm" href="/sitemap.xml" target="_blank" rel="noopener"><Icon name="arrow-square-out" size={16} /> sitemap.xml</a>
+        <a class="btn btn--quiet btn--sm" href="/robots.txt" target="_blank" rel="noopener"><Icon name="arrow-square-out" size={16} /> robots.txt</a>
+      </div>
+      <p class="field__help">Dirección usada: <strong>{origen}</strong></p>
+    </div>
+
+    <div class="card card__body config__card">
+      <span class="config__icon"><Icon name="database" size={22} /></span>
+      <h2>Respaldo</h2>
+      <p class="field__help">
+        Descarga todo el contenido del sitio en un archivo: carta, eventos, textos y ajustes. No incluye usuarios ni contraseñas.
+      </p>
+      <a class="btn btn--primary btn--sm config__download" href="/admin/api/respaldo" download>
+        <Icon name="download-simple" size={16} /> Descargar respaldo
+      </a>
+
+      <form method="post" enctype="multipart/form-data" class="config__import">
+        <label class="field__label" for="archivo">Restaurar desde un archivo</label>
+        <input class="input" id="archivo" name="archivo" type="file" accept="application/json,.json" required />
+        {
+          errorRespaldo && (
+            <p class="field__error" role="alert">
+              <Icon name="warning-circle" size={16} /> {errorRespaldo}
+            </p>
+          )
+        }
+        <button
+          class="btn btn--danger btn--sm"
+          type="submit"
+          name="_action"
+          value="importar"
+          data-confirm="¿Reemplazar todo el contenido por este respaldo?"
+          data-confirm-text="El sitio mostrará exactamente lo que tiene el archivo. Antes guardamos el estado actual para que puedas descargarlo si te arrepientes."
+        >
+          <Icon name="upload-simple" size={16} /> Restaurar respaldo
+        </button>
+      </form>
+
+      {
+        importaciones.length > 0 && (
+          <div class="config__history">
+            <p class="field__label">Restauraciones anteriores</p>
+            <ul>
+              {importaciones.map((i) => (
+                <li>
+                  <span>
+                    {i.title} · {fecha(i.at)} · {i.user_name}
+                  </span>
+                  <a href={`/admin/api/respaldo?antes=${i.id}`} download>
+                    Estado previo
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
+    </div>
+  </section>
+</Admin>
+
+<style>
+  .config__extra {
+    display: grid;
+    gap: var(--s-300);
+    margin-top: var(--s-300);
+  }
+  @media (min-width: 900px) {
+    .config__extra {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+  .config__card {
+    display: grid;
+    gap: var(--s-100);
+    align-content: start;
+  }
+  .config__card h2 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .config__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-full);
+    background: rgba(244, 123, 68, 0.12);
+    color: var(--terracota);
+  }
+  .config__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-75);
+  }
+  .config__download {
+    justify-self: start;
+  }
+  .config__import {
+    display: grid;
+    gap: var(--s-100);
+    margin-top: var(--s-200);
+    padding-top: var(--s-200);
+    border-top: 1px solid var(--line);
+  }
+  .config__import .btn {
+    justify-self: start;
+  }
+  .config__import input[type='file'] {
+    padding: var(--s-75);
+    color: var(--ink-soft);
+  }
+  .config__import input[type='file']::file-selector-button {
+    margin-right: var(--s-100);
+    padding: var(--s-50) var(--s-100);
+    border: 0;
+    border-radius: var(--r-md);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .config__history {
+    margin-top: var(--s-200);
+    padding-top: var(--s-200);
+    border-top: 1px solid var(--line);
+  }
+  .config__history ul {
+    display: grid;
+    gap: var(--s-75);
+    margin: var(--s-100) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+  }
+  .config__history li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-200);
+  }
+  .config__history a {
+    flex: none;
+    color: var(--terracota);
+  }
+</style>

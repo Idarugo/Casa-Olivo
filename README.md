@@ -40,7 +40,21 @@ En `/admin` se agrega, edita, ordena y elimina todo lo que muestra el sitio:
 - **Eventos:** shows con afiche, fecha y link de entradas. Se ocultan solos cuando pasan.
 - **Karaoke:** datos del concurso, jornadas, premios y bases.
 - **Sitio:** escenas del recorrido del inicio (con su punto de vuelo), textos del inicio, datos del local y preguntas frecuentes.
-- **Usuarios:** quién puede entrar al panel.
+- **Usuarios:** quién puede entrar al panel y con qué rol.
+- **Historial:** cada cambio con quién lo hizo, cuándo y qué cambió, con opción de volver a la versión anterior.
+- **Papelera:** lo eliminado se guarda 30 días y se puede recuperar.
+- **Estado de servicios:** revisión en vivo de la base de datos, las fotos, Tableo, Google Maps, el formulario del karaoke y las entradas de cada show, más avisos de contenido incompleto.
+- **Configuración:** aviso temporal en el sitio, títulos y descripciones para Google, imagen para compartir, `sitemap.xml`, `robots.txt` y respaldo descargable del contenido.
+
+### Roles
+
+| Rol | Puede |
+| --- | --- |
+| Administrador | Todo el panel |
+| Editor | Todo el contenido, su historial y el estado de servicios. Sin usuarios ni configuración |
+| Carta | Platos, precios, happy hour y menú ejecutivo |
+
+Los permisos se validan en el servidor (`src/lib/permissions.ts` y `src/middleware.ts`), no solo en la interfaz. Siempre queda al menos un administrador.
 
 Los cambios se ven en el sitio en segundos, sin volver a desplegar. Atajos: <kbd>⌘K</kbd> para buscar cualquier cosa y <kbd>⌘S</kbd> para guardar.
 
@@ -67,6 +81,7 @@ Sin variables de entorno, `npm run dev` usa PGlite (un Postgres embebido en `.da
 - `src/lib/schema.ts`: qué se puede editar y con qué campos. El panel arma sus formularios a partir de aquí.
 - `src/lib/content.ts`: lee el contenido publicado y lo entrega a las páginas.
 - `src/lib/db.ts`, `auth.ts`, `storage.ts`: base de datos, sesiones y fotos.
+- `src/lib/permissions.ts`, `audit.ts`, `health.ts`, `backup.ts`: roles, historial, estado de servicios y respaldo.
 - `src/pages/admin/`: el panel.
 
 ## Sistema visual

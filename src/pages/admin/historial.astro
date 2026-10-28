@@ -1,0 +1,405 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { query, one } from '../../lib/db';
+import { actionLabels, diff, type AuditRow } from '../../lib/audit';
+import { collections, getCollection, getSingleton } from '../../lib/schema';
+import { restoreVersion, saveSetting } from '../../lib/repo';
+import { can } from '../../lib/permissions';
+
+const user = Astro.locals.user!;
+const PAGE = 40;
+
+// Restaurar una versión
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const id = Number(form.get('audit'));
+  const which = String(form.get('which')) === 'after' ? 'after' : 'before';
+  const row = await one<AuditRow>('select * from audit where id = $1', [id]);
+  const data = row?.[which];
+  if (row && data && row.collection && can(user, row.collection)) {
+    if (getSingleton(row.collection)) {
+      await saveSetting(row.collection, data, user);
+      return Astro.redirect(`/admin/ajustes/${row.collection}?ok=restaurado`);
+    }
+    if (getCollection(row.collection) && row.entry_id) {
+      const id2 = await restoreVersion(row.collection, row.entry_id, data, user);
+      return Astro.redirect(`/admin/${row.collection}/${id2}?ok=restaurado`);
+    }
+  }
+  return Astro.redirect('/admin/historial?error=noexiste');
+}
+
+// Filtros
+const q = Astro.url.searchParams;
+const fSeccion = q.get('seccion') ?? '';
+const fUsuario = q.get('usuario') ?? '';
+const fTipo = q.get('tipo') ?? '';
+const fId = Number(q.get('id') ?? 0);
+const antes = Number(q.get('antes') ?? 0);
+
+// Lo que este rol puede ver
+const areas = [...collections.map((c) => c.key), 'general', 'inicio', 'menu_ejecutivo', 'happy_hour_info', 'karaoke'].filter((a) => can(user, a));
+const verCuentas = can(user, 'usuarios');
+
+const where: string[] = [];
+const params: unknown[] = [];
+const p = (v: unknown) => {
+  params.push(v);
+  return `$${params.length}`;
+};
+where.push(`(collection = any(${p(areas)}::text[])${verCuentas ? ' or collection is null' : ''})`);
+if (fSeccion) where.push(`collection = ${p(fSeccion)}`);
+if (fUsuario) where.push(`user_id = ${p(Number(fUsuario))}`);
+if (fTipo === 'contenido') where.push(`action in ('create','update','delete','restore','purge','reorder','settings','backup_import')`);
+if (fTipo === 'cuentas') where.push(`action in ('login','logout','user_create','user_delete','user_role','password')`);
+if (fId) where.push(`entry_id = ${p(fId)}`);
+if (antes) where.push(`id < ${p(antes)}`);
+
+const rows = await query<AuditRow>(`select * from audit where ${where.join(' and ')} order by id desc limit ${PAGE + 1}`, params);
+const hayMas = rows.length > PAGE;
+const items = rows.slice(0, PAGE);
+const usuarios = await query<{ id: number; name: string }>('select distinct user_id as id, user_name as name from audit where user_id is not null order by user_name');
+
+const label = (key: string | null) => (key ? (getCollection(key)?.label ?? getSingleton(key)?.label ?? key) : '');
+const fieldLabel = (key: string | null, field: string) => {
+  const fields = key ? (getCollection(key)?.fields ?? getSingleton(key)?.fields ?? []) : [];
+  return fields.find((f) => f.name === field)?.label ?? field;
+};
+const show = (v: unknown): string => {
+  if (v == null || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Sí' : 'No';
+  if (typeof v === 'number') return v.toLocaleString('es-CL');
+  if (typeof v === 'string') return v.length > 160 ? v.slice(0, 160) + '…' : v;
+  if (Array.isArray(v)) return v.map((x) => (typeof x === 'object' && x ? Object.values(x).filter(Boolean).join(' ') : String(x))).join(' · ') || '—';
+  if (typeof v === 'object' && 'src' in (v as any)) return 'Foto';
+  if (typeof v === 'object' && 'x' in (v as any)) return `${(v as any).x}% · ${(v as any).y}%`;
+  return JSON.stringify(v);
+};
+const dia = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d));
+const hora = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+const icono: Record<string, string> = {
+  create: 'plus',
+  update: 'pencil-simple',
+  settings: 'pencil-simple',
+  delete: 'trash',
+  purge: 'x-circle',
+  restore: 'arrow-counter-clockwise',
+  reorder: 'arrows-down-up',
+  login: 'sign-in',
+  logout: 'sign-out',
+  user_create: 'user-plus',
+  user_delete: 'user-minus',
+  user_role: 'shield-check',
+  password: 'key',
+  backup_import: 'database',
+};
+const initials = (n: string | null) =>
+  (n ?? '?')
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+// Agrupar por día
+const grupos: { dia: string; items: AuditRow[] }[] = [];
+for (const r of items) {
+  const d = dia(r.at);
+  const g = grupos.at(-1);
+  if (g?.dia === d) g.items.push(r);
+  else grupos.push({ dia: d, items: [r] });
+}
+const masHref = () => {
+  const u = new URLSearchParams(q);
+  u.set('antes', String(items.at(-1)!.id));
+  return `?${u}`;
+};
+const secciones = areas.map((a) => ({ value: a, label: label(a) })).sort((a, b) => a.label.localeCompare(b.label));
+---
+
+<Admin title="Historial" description="Cada cambio del panel: quién lo hizo, cuándo y qué cambió. Puedes volver a cualquier versión anterior." crumbs={[{ label: 'Administración' }, { label: 'Historial' }]} current="historial">
+  <form class="toolbar hist__filters" method="get" data-filters>
+    <select class="select" name="seccion" aria-label="Sección">
+      <option value="">Todas las secciones</option>
+      {
+        secciones.map((s) => (
+          <option value={s.value} selected={fSeccion === s.value}>
+            {s.label}
+          </option>
+        ))
+      }
+    </select>
+    <select class="select" name="usuario" aria-label="Persona">
+      <option value="">Todas las personas</option>
+      {
+        usuarios.map((u) => (
+          <option value={u.id} selected={fUsuario === String(u.id)}>
+            {u.name}
+          </option>
+        ))
+      }
+    </select>
+    {
+      verCuentas && (
+        <select class="select" name="tipo" aria-label="Tipo">
+          <option value="">Todo</option>
+          <option value="contenido" selected={fTipo === 'contenido'}>
+            Cambios de contenido
+          </option>
+          <option value="cuentas" selected={fTipo === 'cuentas'}>
+            Ingresos y cuentas
+          </option>
+        </select>
+      )
+    }
+    {fId > 0 && <input type="hidden" name="id" value={fId} />}
+    {
+      (fSeccion || fUsuario || fTipo || fId > 0) && (
+        <a class="btn btn--quiet btn--sm" href="/admin/historial">
+          <Icon name="x" size={16} /> Quitar filtros
+        </a>
+      )
+    }
+  </form>
+
+  {
+    items.length === 0 ? (
+      <div class="card">
+        <div class="empty-state">
+          <Icon name="clock-counter-clockwise" size={40} />
+          <h2>Todavía no hay cambios registrados</h2>
+          <p>Cuando alguien edite algo en el panel, aparecerá aquí.</p>
+        </div>
+      </div>
+    ) : (
+      <div class="hist">
+        {grupos.map((g) => (
+          <section class="hist__day">
+            <h2 class="hist__date">{g.dia}</h2>
+            <ol class="hist__list">
+              {g.items.map((r) => {
+                const cambios = r.action === 'update' || r.action === 'settings' || r.action === 'restore' ? diff(r.before, r.after) : [];
+                const puedeRestaurar = !!r.collection && !!r.before && ['update', 'settings', 'delete', 'restore', 'purge'].includes(r.action);
+                const enlace = r.collection && r.entry_id && getCollection(r.collection) ? `/admin/${r.collection}/${r.entry_id}` : r.collection && getSingleton(r.collection) ? `/admin/ajustes/${r.collection}` : null;
+                return (
+                  <li class="hist__item">
+                    <span class="avatar" aria-hidden="true">
+                      {initials(r.user_name)}
+                    </span>
+                    <div class="hist__body">
+                      <p class="hist__line">
+                        <Icon name={icono[r.action] ?? 'dot'} size={16} />
+                        <strong>{r.user_name ?? 'Sistema'}</strong> {actionLabels[r.action] ?? r.action}{' '}
+                        {r.title && (enlace && r.action !== 'purge' ? <a href={enlace}>{r.title}</a> : <em>{r.title}</em>)}
+                        {r.collection && r.action !== 'reorder' && <span class="hist__where">en {label(r.collection)}</span>}
+                        <time datetime={r.at}>{hora(r.at)}</time>
+                      </p>
+                      {r.action === 'user_role' && (
+                        <p class="hist__meta">
+                          {show(r.before?.role)} → {show(r.after?.role)}
+                        </p>
+                      )}
+                      {cambios.length > 0 && (
+                        <details class="hist__diff">
+                          <summary>
+                            {cambios.length === 1 ? '1 campo cambiado' : `${cambios.length} campos cambiados`}: {cambios.map((c) => fieldLabel(r.collection, c.field)).join(', ')}
+                          </summary>
+                          <dl>
+                            {cambios.map((c) => (
+                              <div>
+                                <dt>{fieldLabel(r.collection, c.field)}</dt>
+                                <dd>
+                                  <del>{show(c.before)}</del>
+                                  <Icon name="arrow-right" size={14} />
+                                  <ins>{show(c.after)}</ins>
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </details>
+                      )}
+                    </div>
+                    {puedeRestaurar && can(user, r.collection!) && (
+                      <form method="post" class="hist__restore">
+                        <input type="hidden" name="audit" value={r.id} />
+                        <input type="hidden" name="which" value="before" />
+                        <button
+                          class="btn btn--quiet btn--sm"
+                          type="submit"
+                          data-confirm={r.action === 'delete' || r.action === 'purge' ? '¿Recuperar este elemento?' : '¿Volver a la versión anterior?'}
+                          data-confirm-text={
+                            r.action === 'delete' || r.action === 'purge'
+                              ? 'Vuelve a aparecer en el sitio tal como estaba antes de eliminarse.'
+                              : 'El contenido vuelve a como estaba antes de este cambio. El cambio queda registrado y también se puede deshacer.'
+                          }
+                        >
+                          <Icon name="arrow-counter-clockwise" size={16} />
+                          {r.action === 'delete' || r.action === 'purge' ? 'Recuperar' : 'Restaurar anterior'}
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        ))}
+        {hayMas && (
+          <a class="btn btn--quiet hist__more" href={masHref()}>
+            Ver cambios anteriores
+          </a>
+        )}
+      </div>
+    )
+  }
+</Admin>
+
+<script>
+  // Los filtros se aplican al elegirlos
+  document.querySelectorAll<HTMLSelectElement>('[data-filters] select').forEach((s) => s.addEventListener('change', () => s.form?.submit()));
+</script>
+
+<style>
+  .hist__filters .select {
+    width: auto;
+    min-width: 180px;
+  }
+  .hist {
+    display: grid;
+    gap: var(--s-400);
+  }
+  .hist__date {
+    margin-bottom: var(--s-100);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--terracota);
+  }
+  .hist__list {
+    position: relative;
+    display: grid;
+    margin: 0;
+    padding: var(--s-100);
+    list-style: none;
+    border-radius: var(--r-2xl);
+    background: var(--bg-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .hist__item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-200);
+    padding: var(--s-100);
+    border-radius: var(--r-xl);
+  }
+  .hist__item + .hist__item {
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .hist__item .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+  .hist__body {
+    flex: 1;
+    min-width: 0;
+  }
+  .hist__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-50);
+    line-height: 1.5rem;
+  }
+  .hist__line .icon {
+    color: var(--terracota);
+    margin-right: var(--s-25);
+  }
+  .hist__line a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: rgba(244, 123, 68, 0.5);
+    text-underline-offset: 3px;
+  }
+  .hist__line em {
+    font-style: normal;
+  }
+  .hist__where {
+    color: var(--ink-soft);
+  }
+  .hist__line time {
+    margin-left: auto;
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .hist__meta {
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+  }
+  .hist__diff {
+    margin-top: var(--s-75);
+  }
+  .hist__diff summary {
+    width: fit-content;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .hist__diff summary:hover {
+    color: var(--ink);
+  }
+  .hist__diff dl {
+    display: grid;
+    gap: var(--s-100);
+    margin: var(--s-100) 0 0;
+    padding: var(--s-200);
+    border-radius: var(--r-lg);
+    background: var(--field);
+  }
+  .hist__diff dt {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .hist__diff dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-75);
+    margin: var(--s-25) 0 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .hist__diff dd .icon {
+    color: var(--ink-soft);
+  }
+  .hist__diff del {
+    color: #ffb3a9;
+    text-decoration-color: rgba(255, 122, 107, 0.6);
+  }
+  .hist__diff ins {
+    color: var(--ok);
+    text-decoration: none;
+  }
+  .hist__restore {
+    flex: none;
+  }
+  .hist__more {
+    justify-self: center;
+  }
+  @media (max-width: 640px) {
+    .hist__item {
+      flex-wrap: wrap;
+    }
+    .hist__line time {
+      margin-left: 0;
+    }
+  }
+</style>

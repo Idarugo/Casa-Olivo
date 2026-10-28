@@ -21,6 +21,20 @@ const categoriaImg: Record<string, { imagen: ReturnType<typeof img>; recorte?: b
 };
 
 export const settingsSeed: Record<string, unknown> = {
+  sitio: {
+    aviso_activo: false,
+    aviso_texto: '',
+    aviso_link: '',
+    aviso_link_texto: '',
+    aviso_hasta: '',
+    seo_titulo: 'Casa Olivo · Cocina chilena en Olivar',
+    seo_descripcion:
+      'Restaurante de cocina chilena en una casona de más de cien años en Olivar, a minutos de Rancagua. Menú ejecutivo, celebraciones y reservas.',
+    og_imagen: null,
+    paginas: [],
+    url_sitio: '',
+    indexar: true,
+  },
   general: {
     whatsapp: '56958785050',
     instagram: 'casaolivorestaurante',

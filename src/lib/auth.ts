@@ -15,7 +15,7 @@ const SESSION_DAYS = 30;
 const MAX_FAILS = 5;
 const WINDOW_MIN = 15;
 
-export type User = { id: number; email: string; name: string };
+export type User = { id: number; email: string; name: string; role: string };
 
 export async function hashPassword(pw: string) {
   const salt = randomBytes(16);
@@ -43,12 +43,13 @@ export async function countUsers() {
   return Number(row?.n ?? 0);
 }
 
-export async function createUser(email: string, name: string, password: string) {
+export async function createUser(email: string, name: string, password: string, role = 'admin') {
   const hash = await hashPassword(password);
-  const row = await one<User>('insert into users (email, name, password_hash) values ($1, $2, $3) returning id, email, name', [
+  const row = await one<User>('insert into users (email, name, password_hash, role) values ($1, $2, $3, $4) returning id, email, name, role', [
     email.trim().toLowerCase(),
     name.trim(),
     hash,
+    role,
   ]);
   return row!;
 }
@@ -67,11 +68,11 @@ export async function login(email: string, password: string): Promise<{ user?: U
   );
   if (Number(fails?.n ?? 0) >= MAX_FAILS) return { error: `Demasiados intentos fallidos. Espera ${WINDOW_MIN} minutos e inténtalo otra vez.` };
 
-  const row = await one<User & { password_hash: string }>('select id, email, name, password_hash from users where email = $1', [e]);
+  const row = await one<User & { password_hash: string }>('select id, email, name, role, password_hash from users where email = $1', [e]);
   const ok = !!row && (await verifyPassword(password, row.password_hash));
   await query('insert into login_attempts (email, ok) values ($1, $2)', [e, ok]);
   if (!ok) return { error: 'El correo o la contraseña no coinciden.' };
-  return { user: { id: row!.id, email: row!.email, name: row!.name } };
+  return { user: { id: row!.id, email: row!.email, name: row!.name, role: row!.role } };
 }
 
 export async function startSession(cookies: AstroCookies, userId: number) {
@@ -97,7 +98,7 @@ export async function currentUser(cookies: AstroCookies): Promise<User | undefin
   const token = cookies.get(COOKIE)?.value;
   if (!token) return;
   return one<User>(
-    `select u.id, u.email, u.name from sessions s join users u on u.id = s.user_id
+    `select u.id, u.email, u.name, u.role from sessions s join users u on u.id = s.user_id
      where s.token_hash = $1 and s.expires_at > now()`,
     [sha(token)],
   );

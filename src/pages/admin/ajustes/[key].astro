@@ -5,6 +5,7 @@ import { getSingleton } from '../../../lib/schema';
 import { validate, type Errors } from '../../../lib/forms';
 import { getSetting, saveSetting } from '../../../lib/repo';
 import { publicHref } from '../../../lib/admin';
+import { can } from '../../../lib/permissions';
 
 const s = getSingleton(Astro.params.key!);
 if (!s) return new Response(null, { status: 404 });
@@ -18,7 +19,7 @@ if (Astro.request.method === 'POST') {
   data = res.data;
   errors = res.errors;
   if (res.ok) {
-    await saveSetting(s.key, data);
+    await saveSetting(s.key, data, Astro.locals.user);
     return Astro.redirect(`/admin/ajustes/${s.key}?ok=guardado`);
   }
   Astro.response.status = 422;
@@ -30,5 +31,5 @@ const updated = current.updated_at
 ---
 
 <Admin title={s.label} description={s.description} crumbs={[{ label: s.group }, { label: s.label }]} current={s.key}>
-  <AdminForm fields={s.fields} data={data} errors={errors} meta={[{ label: 'Última edición', value: updated }]} viewHref={publicHref(s.key)} />
+  <AdminForm fields={s.fields} data={data} errors={errors} meta={[{ label: 'Última edición', value: updated }]} viewHref={publicHref(s.key)} historyHref={can(Astro.locals.user, 'historial') ? `/admin/historial?seccion=${s.key}` : undefined} />
 </Admin>

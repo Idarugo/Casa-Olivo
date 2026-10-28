@@ -5,10 +5,12 @@ import { getCollection } from '../../../lib/schema';
 import { validate, type Errors } from '../../../lib/forms';
 import { getEntry, createEntry, updateEntry, deleteEntry, duplicateEntry, categoriasMap } from '../../../lib/repo';
 import { publicHref } from '../../../lib/admin';
+import { can } from '../../../lib/permissions';
 
 const col = getCollection(Astro.params.collection!);
 if (!col) return new Response(null, { status: 404 });
 
+const actor = Astro.locals.user;
 const isNew = Astro.params.id === 'nuevo';
 const id = isNew ? 0 : Number(Astro.params.id);
 if (!isNew && !Number.isInteger(id)) return new Response(null, { status: 404 });
@@ -24,11 +26,11 @@ if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const action = String(form.get('_action') ?? 'save');
   if (!isNew && action === 'delete') {
-    await deleteEntry(col.key, id);
-    return Astro.redirect(`/admin/${col.key}?ok=eliminado`);
+    await deleteEntry(col.key, id, actor);
+    return Astro.redirect(`/admin/${col.key}?ok=papelera`);
   }
   if (!isNew && action === 'duplicate') {
-    const copia = await duplicateEntry(col.key, id);
+    const copia = await duplicateEntry(col.key, id, actor);
     return Astro.redirect(`/admin/${col.key}/${copia}?ok=duplicado`);
   }
   const res = validate(col.fields, form);
@@ -36,10 +38,10 @@ if (Astro.request.method === 'POST') {
   errors = res.errors;
   if (res.ok) {
     if (isNew) {
-      const nuevo = await createEntry(col.key, data);
+      const nuevo = await createEntry(col.key, data, actor);
       return Astro.redirect(`/admin/${col.key}/${nuevo}?ok=creado`);
     }
-    await updateEntry(col.key, id, data);
+    await updateEntry(col.key, id, data, actor);
     return Astro.redirect(`/admin/${col.key}/${id}?ok=guardado`);
   }
   Astro.response.status = 422;
@@ -65,5 +67,6 @@ const updated = entry?.updated_at
     canDuplicate={!isNew}
     deleteLabel={`“${title}”`}
     viewHref={publicHref(col.key)}
+    historyHref={!isNew && can(actor, 'historial') ? `/admin/historial?seccion=${col.key}&id=${id}` : undefined}
   />
 </Admin>

@@ -1,0 +1,113 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { listTrash, restoreEntry, purgeEntry, TRASH_DAYS } from '../../lib/repo';
+import { getCollection } from '../../lib/schema';
+import { can } from '../../lib/permissions';
+
+const user = Astro.locals.user!;
+const puedeVaciar = can(user, 'usuarios'); // solo administradores eliminan definitivamente
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const id = Number(form.get('id'));
+  const action = String(form.get('_action'));
+  const item = (await listTrash()).find((e) => e.id === id);
+  if (item && can(user, item.collection)) {
+    if (action === 'restore') {
+      await restoreEntry(id, user);
+      return Astro.redirect(`/admin/${item.collection}/${id}?ok=recuperado`);
+    }
+    if (action === 'purge' && puedeVaciar) {
+      await purgeEntry(id, user);
+      return Astro.redirect('/admin/papelera?ok=purgado');
+    }
+  }
+  return Astro.redirect('/admin/papelera?error=noexiste');
+}
+
+const items = (await listTrash()).filter((e) => can(user, e.collection));
+const now = Date.now();
+const quedan = (d: string) => Math.max(0, TRASH_DAYS - Math.floor((now - new Date(d).getTime()) / 864e5));
+const cuando = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d));
+---
+
+<Admin title="Papelera" description={`Lo eliminado se guarda ${TRASH_DAYS} días antes de borrarse para siempre. Mientras tanto no aparece en el sitio y puedes recuperarlo.`} crumbs={[{ label: 'Administración' }, { label: 'Papelera' }]} current="papelera">
+  {
+    items.length === 0 ? (
+      <div class="card">
+        <div class="empty-state">
+          <Icon name="trash" size={40} />
+          <h2>La papelera está vacía</h2>
+          <p>Cuando elimines algo, quedará aquí por {TRASH_DAYS} días por si necesitas recuperarlo.</p>
+        </div>
+      </div>
+    ) : (
+      <div class="card">
+        <ul class="rows">
+          {items.map((e) => {
+            const col = getCollection(e.collection);
+            const titulo = String((col && e.data[col.title]) || 'Sin título').split('\n')[0];
+            const thumb = col?.thumb ? (e.data[col.thumb]?.sm ?? e.data[col.thumb]?.src) : null;
+            const dias = quedan(e.deleted_at!);
+            return (
+              <li class="row">
+                {thumb ? (
+                  <img class="row__thumb" src={thumb} alt="" loading="lazy" />
+                ) : (
+                  <span class="row__thumb row__thumb--empty">
+                    <Icon name={col?.icon ?? 'trash'} size={20} />
+                  </span>
+                )}
+                <span class="row__main">
+                  <span class="row__title">
+                    {titulo}
+                    <span class:list={['badge', { 'badge--warn': dias <= 5 }]}>{dias === 1 ? 'Queda 1 día' : `Quedan ${dias} días`}</span>
+                  </span>
+                  <span class="row__meta">
+                    {col?.label ?? e.collection} · eliminado {cuando(e.deleted_at!)}
+                    {e.deleted_by && ` por ${e.deleted_by}`}
+                  </span>
+                </span>
+                <form method="post" class="trash__actions">
+                  <input type="hidden" name="id" value={e.id} />
+                  <button class="btn btn--quiet btn--sm" type="submit" name="_action" value="restore">
+                    <Icon name="arrow-counter-clockwise" size={16} /> Recuperar
+                  </button>
+                  {puedeVaciar && (
+                    <button
+                      class="icon-btn icon-btn--danger"
+                      type="submit"
+                      name="_action"
+                      value="purge"
+                      aria-label="Eliminar definitivamente"
+                      title="Eliminar definitivamente"
+                      data-confirm={`¿Eliminar “${titulo}” para siempre?`}
+                      data-confirm-text="Ya no se podrá recuperar desde la papelera. Seguirá en el historial."
+                    >
+                      <Icon name="x-circle" size={18} />
+                    </button>
+                  )}
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    )
+  }
+</Admin>
+
+<style>
+  .trash__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s-50);
+    flex: none;
+  }
+  @media (max-width: 640px) {
+    .row {
+      flex-wrap: wrap;
+    }
+  }
+</style>

@@ -1,13 +1,18 @@
 ---
 import Admin from '../../layouts/Admin.astro';
 import Icon from '../../components/Icon.astro';
-import { query } from '../../lib/db';
+import { query, one } from '../../lib/db';
 import { createUser, setPassword, validatePassword } from '../../lib/auth';
+import { roles, roleKeys, isRole } from '../../lib/permissions';
+import { log } from '../../lib/audit';
 
 const me = Astro.locals.user!;
 let error = '';
 let errorForm = '';
-const nuevo = { name: '', email: '' };
+const nuevo = { name: '', email: '', role: 'editor' };
+
+const admins = async () => Number((await one<{ n: string }>(`select count(*) as n from users where role = 'admin'`))?.n ?? 0);
+const userById = (id: number) => one<{ id: number; name: string; role: string }>('select id, name, role from users where id = $1', [id]);
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -17,14 +22,31 @@ if (Astro.request.method === 'POST') {
     errorForm = 'create';
     nuevo.name = String(form.get('name') ?? '').trim();
     nuevo.email = String(form.get('email') ?? '').trim().toLowerCase();
+    nuevo.role = String(form.get('role') ?? 'editor');
     const pw = String(form.get('password') ?? '');
     if (!nuevo.name) error = 'Escribe el nombre de la persona.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevo.email)) error = 'Escribe un correo válido.';
+    else if (!isRole(nuevo.role)) error = 'Elige un rol.';
     else if ((await query('select 1 from users where email = $1', [nuevo.email])).length) error = 'Ya existe un usuario con ese correo.';
     else error = validatePassword(pw) ?? '';
     if (!error) {
-      await createUser(nuevo.email, nuevo.name, pw);
+      const u = await createUser(nuevo.email, nuevo.name, pw, nuevo.role);
+      await log(me, 'user_create', { title: u.name, after: { email: u.email, role: u.role } });
       return Astro.redirect('/admin/usuarios?ok=creado');
+    }
+  }
+
+  if (action === 'role') {
+    errorForm = 'list';
+    const id = Number(form.get('id'));
+    const role = String(form.get('role'));
+    const target = await userById(id);
+    if (!target || !isRole(role)) error = 'No encontramos ese usuario o rol.';
+    else if (target.role === 'admin' && role !== 'admin' && (await admins()) <= 1) error = 'Debe quedar al menos un administrador.';
+    else {
+      await query('update users set role = $2 where id = $1', [id, role]);
+      await log(me, 'user_role', { title: target.name, before: { role: target.role }, after: { role } });
+      return Astro.redirect('/admin/usuarios?ok=rol');
     }
   }
 
@@ -34,23 +56,34 @@ if (Astro.request.method === 'POST') {
     error = validatePassword(pw) ?? (pw !== String(form.get('confirm') ?? '') ? 'Las contraseñas no coinciden.' : '');
     if (!error) {
       await setPassword(me.id, pw);
+      await log(me, 'password');
       return Astro.redirect('/admin/login?salio=1');
     }
   }
 
   if (action === 'delete') {
+    errorForm = 'list';
     const id = Number(form.get('id'));
+    const target = await userById(id);
     if (id === me.id) error = 'No puedes eliminar tu propia cuenta.';
+    else if (!target) error = 'Ese usuario ya no existe.';
+    else if (target.role === 'admin' && (await admins()) <= 1) error = 'Debe quedar al menos un administrador.';
     else {
       await query('delete from users where id = $1', [id]);
+      await log(me, 'user_delete', { title: target.name, before: { role: target.role } });
       return Astro.redirect('/admin/usuarios?ok=eliminado');
     }
   }
   if (error) Astro.response.status = 422;
 }
 
-const users = await query<{ id: number; name: string; email: string; created_at: string }>('select id, name, email, created_at from users order by created_at');
+const users = await query<{ id: number; name: string; email: string; role: string; created_at: string; last_login: string | null }>(
+  `select u.id, u.name, u.email, u.role, u.created_at,
+     (select max(at) from audit a where a.user_id = u.id and a.action = 'login') as last_login
+   from users u order by u.created_at`,
+);
 const fecha = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium' }).format(new Date(d));
+const fechaHora = (d: string) => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(d));
 const initials = (n: string) =>
   n
     .split(/\s+/)
@@ -60,45 +93,85 @@ const initials = (n: string) =>
     .toUpperCase();
 ---
 
-<Admin title="Usuarios" description="Personas que pueden entrar al panel. Todas tienen los mismos permisos." crumbs={[{ label: 'Cuenta' }, { label: 'Usuarios' }]} current="usuarios">
+<Admin title="Usuarios" description="Personas que pueden entrar al panel y qué puede hacer cada una." crumbs={[{ label: 'Administración' }, { label: 'Usuarios' }]} current="usuarios">
   <div class="users">
-    <div class="card">
-      <ul class="rows">
-        {
-          users.map((u) => (
-            <li class="row">
-              <span class="avatar" aria-hidden="true">
-                {initials(u.name)}
-              </span>
-              <span class="row__main">
-                <span class="row__title">
-                  {u.name}
-                  {u.id === me.id && <span class="badge badge--ok">Tú</span>}
+    <div class="users__main">
+      {
+        error && errorForm === 'list' && (
+          <p class="field__error" role="alert" style="margin-bottom:var(--s-200)">
+            <Icon name="warning-circle" size={16} /> {error}
+          </p>
+        )
+      }
+      <div class="card">
+        <ul class="rows">
+          {
+            users.map((u) => (
+              <li class="row">
+                <span class="avatar" aria-hidden="true">
+                  {initials(u.name)}
                 </span>
-                <span class="row__meta">
-                  {u.email} · desde {fecha(u.created_at)}
+                <span class="row__main">
+                  <span class="row__title">
+                    {u.name}
+                    {u.id === me.id && <span class="badge badge--ok">Tú</span>}
+                  </span>
+                  <span class="row__meta">
+                    {u.email} · {u.last_login ? `último ingreso ${fechaHora(u.last_login)}` : `desde ${fecha(u.created_at)}`}
+                  </span>
                 </span>
-              </span>
-              {u.id !== me.id && (
-                <form method="post" class="row__actions">
+                <form method="post" class="users__role">
                   <input type="hidden" name="id" value={u.id} />
-                  <button
-                    class="icon-btn icon-btn--danger"
-                    type="submit"
-                    name="_action"
-                    value="delete"
-                    aria-label={`Eliminar a ${u.name}`}
-                    data-confirm={`¿Quitar el acceso de ${u.name}?`}
-                    data-confirm-text="Ya no podrá entrar al panel. Lo que haya editado se mantiene."
-                  >
-                    <Icon name="trash" size={18} />
-                  </button>
+                  <input type="hidden" name="_action" value="role" />
+                  <label class="sr-only" for={`role-${u.id}`}>
+                    Rol de {u.name}
+                  </label>
+                  <select class="select select--sm" id={`role-${u.id}`} name="role" data-autosubmit disabled={u.id === me.id}>
+                    {roleKeys.map((r) => (
+                      <option value={r} selected={u.role === r}>
+                        {roles[r].label}
+                      </option>
+                    ))}
+                  </select>
                 </form>
-              )}
-            </li>
-          ))
-        }
-      </ul>
+                {u.id !== me.id && (
+                  <form method="post" class="row__actions">
+                    <input type="hidden" name="id" value={u.id} />
+                    <button
+                      class="icon-btn icon-btn--danger"
+                      type="submit"
+                      name="_action"
+                      value="delete"
+                      aria-label={`Quitar a ${u.name}`}
+                      data-confirm={`¿Quitar el acceso de ${u.name}?`}
+                      data-confirm-text="Ya no podrá entrar al panel. Lo que haya editado se mantiene en el historial."
+                    >
+                      <Icon name="trash" size={18} />
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="card card__body roles">
+        <h2>Qué puede hacer cada rol</h2>
+        <dl>
+          {
+            roleKeys.map((r) => (
+              <div>
+                <dt>
+                  <Icon name={r === 'admin' ? 'shield-check' : r === 'editor' ? 'pencil-simple' : 'fork-knife'} size={18} />
+                  {roles[r].label}
+                </dt>
+                <dd>{roles[r].description}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
     </div>
 
     <div class="users__forms">
@@ -119,6 +192,18 @@ const initials = (n: string) =>
         <div class="field">
           <label class="field__label" for="u-email">Correo</label>
           <input class="input" id="u-email" name="email" type="email" required value={nuevo.email} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="u-role">Rol</label>
+          <select class="select" id="u-role" name="role">
+            {
+              roleKeys.map((r) => (
+                <option value={r} selected={nuevo.role === r}>
+                  {roles[r].label}
+                </option>
+              ))
+            }
+          </select>
         </div>
         <div class="field">
           <label class="field__label" for="u-pw">Contraseña inicial</label>
@@ -155,12 +240,18 @@ const initials = (n: string) =>
   </div>
 </Admin>
 
+<script>
+  // Cambiar el rol se guarda al elegirlo
+  document.querySelectorAll<HTMLSelectElement>('[data-autosubmit]').forEach((s) => s.addEventListener('change', () => s.form?.requestSubmit()));
+</script>
+
 <style>
   .users {
     display: grid;
     gap: var(--s-300);
     align-items: start;
   }
+  .users__main,
   .users__forms {
     display: grid;
     gap: var(--s-300);
@@ -169,16 +260,62 @@ const initials = (n: string) =>
     display: grid;
     gap: var(--s-200);
   }
-  .users__form h2 {
+  .users__form h2,
+  .roles h2 {
     font-size: 1.125rem;
     line-height: 1.75rem;
   }
   .users__form .btn {
     justify-self: start;
   }
+  .users__role {
+    flex: none;
+  }
+  .select--sm {
+    min-height: 36px;
+    width: auto;
+    padding-block: var(--s-50);
+    padding-left: var(--s-100);
+    font-size: 0.875rem;
+  }
+  .select--sm[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .roles dl {
+    display: grid;
+    gap: var(--s-200);
+    margin: var(--s-200) 0 0;
+  }
+  .roles dt {
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+    font-weight: 600;
+  }
+  .roles dt .icon {
+    color: var(--terracota);
+  }
+  .roles dd {
+    margin: var(--s-25) 0 0;
+    padding-left: var(--s-400);
+    color: var(--ink-soft);
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
   @media (min-width: 1000px) {
     .users {
       grid-template-columns: 1fr 360px;
+    }
+  }
+  @media (max-width: 640px) {
+    .users .row {
+      flex-wrap: wrap;
     }
   }
 </style>

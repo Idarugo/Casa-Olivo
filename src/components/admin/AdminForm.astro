@@ -16,8 +16,9 @@ type Props = {
   canDuplicate?: boolean;
   deleteLabel?: string;
   viewHref?: string;
+  historyHref?: string;
 };
-const { fields, data, errors = {}, options, submitLabel = 'Guardar cambios', meta = [], canDelete, canDuplicate, deleteLabel = 'este elemento', viewHref } = Astro.props;
+const { fields, data, errors = {}, options, submitLabel = 'Guardar cambios', meta = [], canDelete, canDuplicate, deleteLabel = 'este elemento', viewHref, historyHref } = Astro.props;
 const hasErrors = Object.keys(errors).length > 0;
 ---
 
@@ -63,6 +64,13 @@ const hasErrors = Object.keys(errors).length > 0;
           </div>
         )
       }
+      {
+        historyHref && (
+          <a class="aside__link" href={historyHref}>
+            <Icon name="clock-counter-clockwise" size={16} /> Ver historial de cambios
+          </a>
+        )
+      }
       <p class="field__help">Atajo: <kbd>⌘</kbd> <kbd>S</kbd> para guardar.</p>
     </div>
     {
@@ -83,7 +91,7 @@ const hasErrors = Object.keys(errors).length > 0;
               formnovalidate
               data-skip-dirty
               data-confirm={`¿Eliminar ${deleteLabel}?`}
-              data-confirm-text="Desaparece del sitio de inmediato y no se puede deshacer."
+              data-confirm-text="Desaparece del sitio de inmediato. Podrás recuperarlo desde la papelera durante 30 días."
             >
               <Icon name="trash" size={18} />
               Eliminar

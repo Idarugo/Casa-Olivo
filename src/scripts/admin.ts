@@ -34,6 +34,12 @@ const okMessages: Record<string, string> = {
   guardado: 'Cambios guardados. Ya se ven en el sitio.',
   creado: 'Listo, quedó publicado en el sitio.',
   eliminado: 'Eliminado del sitio.',
+  papelera: 'Enviado a la papelera. Puedes recuperarlo durante 30 días.',
+  restaurado: 'Versión restaurada. Ya se ve en el sitio.',
+  recuperado: 'Recuperado de la papelera. Ya se ve en el sitio.',
+  purgado: 'Eliminado definitivamente.',
+  importado: 'Respaldo restaurado. El sitio ya muestra ese contenido.',
+  rol: 'Rol actualizado.',
   duplicado: 'Copia creada. Ajusta lo que necesites y guarda.',
   bienvenida: 'Tu cuenta quedó creada.',
 };

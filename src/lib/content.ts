@@ -57,7 +57,7 @@ const slugify = (s: string) =>
 
 export async function loadContent() {
   const [rows, settingRows] = await Promise.all([
-    query<{ id: number; collection: string; data: any }>('select id, collection, data from entries order by collection, position, id'),
+    query<{ id: number; collection: string; data: any }>('select id, collection, data from entries where deleted_at is null order by collection, position, id'),
     query<{ key: string; data: any }>('select key, data from settings'),
   ]);
 
@@ -70,6 +70,7 @@ export async function loadContent() {
   const menuEjecutivo = setting('menu_ejecutivo');
   const hh = setting('happy_hour_info');
   const kara = setting('karaoke');
+  const sitio = setting('sitio');
 
   const links = {
     reserva: '/reserva',
@@ -146,6 +147,7 @@ export async function loadContent() {
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   return {
+    sitio,
     general,
     inicio,
     links,

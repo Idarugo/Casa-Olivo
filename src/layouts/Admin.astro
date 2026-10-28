@@ -3,7 +3,8 @@ import '../styles/global.css';
 import '../styles/admin.css';
 import Icon from '../components/Icon.astro';
 import { collections, singletons, groups } from '../lib/schema';
-import { counts } from '../lib/repo';
+import { counts, trashCount } from '../lib/repo';
+import { can, roles, isRole } from '../lib/permissions';
 
 type Props = {
   title: string;
@@ -13,7 +14,8 @@ type Props = {
 };
 const { title, description, crumbs = [], current } = Astro.props;
 const user = Astro.locals.user!;
-const n = await counts();
+const [n, enPapelera] = await Promise.all([counts(), trashCount()]);
+const rol = isRole(user.role) ? roles[user.role].label : user.role;
 const initials = user.name
   .split(/\s+/)
   .map((w) => w[0])
@@ -21,13 +23,27 @@ const initials = user.name
   .join('')
   .toUpperCase();
 
-const nav = groups.map((g) => ({
-  group: g,
-  items: [
-    ...collections.filter((c) => c.group === g).map((c) => ({ key: c.key, label: c.label, icon: c.icon, href: `/admin/${c.key}`, count: n[c.key] ?? 0 })),
-    ...singletons.filter((s) => s.group === g).map((s) => ({ key: s.key, label: s.label, icon: s.icon, href: `/admin/ajustes/${s.key}`, count: undefined })),
-  ],
-}));
+const nav = groups
+  .map((g) => ({
+    group: g,
+    items: [
+      ...collections
+        .filter((c) => c.group === g && can(user, c.key))
+        .map((c) => ({ key: c.key, label: c.label, icon: c.icon, href: `/admin/${c.key}`, count: n[c.key] ?? 0 as number | undefined })),
+      ...singletons
+        .filter((s) => s.group === g && can(user, s.key))
+        .map((s) => ({ key: s.key, label: s.label, icon: s.icon, href: `/admin/ajustes/${s.key}`, count: undefined })),
+    ],
+  }))
+  .filter((g) => g.items.length > 0);
+
+const adminNav = [
+  { key: 'historial', label: 'Historial', icon: 'clock-counter-clockwise', href: '/admin/historial', area: 'historial' },
+  { key: 'papelera', label: 'Papelera', icon: 'trash', href: '/admin/papelera', area: 'historial', count: enPapelera || undefined },
+  { key: 'estado', label: 'Estado de servicios', icon: 'pulse', href: '/admin/estado', area: 'estado' },
+  { key: 'configuracion', label: 'Configuración', icon: 'gear-six', href: '/admin/configuracion', area: 'configuracion' },
+  { key: 'usuarios', label: 'Usuarios', icon: 'users-three', href: '/admin/usuarios', area: 'usuarios' },
+].filter((i) => can(user, i.area));
 ---
 
 <!doctype html>
@@ -83,11 +99,16 @@ const nav = groups.map((g) => ({
         ))
       }
       <div class="side__group">
-        <p class="side__group-t">Cuenta</p>
-        <a class="side__link" href="/admin/usuarios" aria-current={current === 'usuarios' ? 'page' : undefined}>
-          <Icon name="users-three" size={18} />
-          Usuarios
-        </a>
+        <p class="side__group-t">Administración</p>
+        {
+          adminNav.map((it) => (
+            <a class="side__link" href={it.href} aria-current={current === it.key ? 'page' : undefined}>
+              <Icon name={it.icon} size={18} />
+              {it.label}
+              {it.count !== undefined && <span class="side__count">{it.count}</span>}
+            </a>
+          ))
+        }
         <a class="side__link" href="/" target="_blank" rel="noopener">
           <Icon name="arrow-square-out" size={18} />
           Ver el sitio
@@ -99,7 +120,7 @@ const nav = groups.map((g) => ({
           <span class="avatar" aria-hidden="true">{initials}</span>
           <span class="side__user-info">
             <strong>{user.name}</strong>
-            <span>{user.email}</span>
+            <span>{rol} · {user.email}</span>
           </span>
           <form method="post" action="/admin/logout">
             <button class="icon-btn" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión"><Icon name="sign-out" size={18} /></button>

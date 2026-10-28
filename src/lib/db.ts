@@ -36,6 +36,25 @@ const SCHEMA = [
     updated_at timestamptz not null default now()
   )`,
   `create index if not exists entries_collection_idx on entries (collection, position)`,
+  // Permisos y papelera (agregados después: se aplican sobre tablas existentes)
+  `alter table users add column if not exists role text not null default 'admin'`,
+  `alter table entries add column if not exists deleted_at timestamptz`,
+  `alter table entries add column if not exists deleted_by text`,
+  // Historial de cambios: quién, cuándo, qué y cómo estaba antes
+  `create table if not exists audit (
+    id serial primary key,
+    at timestamptz not null default now(),
+    user_id integer,
+    user_name text,
+    action text not null,
+    collection text,
+    entry_id integer,
+    title text,
+    before jsonb,
+    after jsonb
+  )`,
+  `create index if not exists audit_at_idx on audit (at desc)`,
+  `create index if not exists audit_entry_idx on audit (collection, entry_id)`,
   // Bloques únicos: datos generales, textos del inicio, menú ejecutivo…
   `create table if not exists settings (
     key text primary key,

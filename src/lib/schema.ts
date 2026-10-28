@@ -243,7 +243,47 @@ export const collections: Collection[] = [
   },
 ];
 
+const paginas = [
+  { value: '/', label: 'Inicio' },
+  { value: '/carta', label: 'Carta' },
+  { value: '/reserva', label: 'Reservas' },
+  { value: '/eventos', label: 'Eventos' },
+  { value: '/karaoke', label: 'Karaoke' },
+  { value: '/links', label: 'Links' },
+];
+
 export const singletons: Singleton[] = [
+  {
+    key: 'sitio',
+    label: 'Configuración del sitio',
+    group: 'Configuración',
+    icon: 'gear-six',
+    description: 'Aviso temporal, buscadores y cómo se ve el sitio al compartirlo.',
+    fields: [
+      { name: 'aviso_activo', label: 'Mostrar un aviso en el sitio', type: 'boolean', help: 'Aparece como una franja flotante en todas las páginas.' },
+      { name: 'aviso_texto', label: 'Texto del aviso', type: 'text', wide: true, placeholder: 'Hoy cerramos a las 18:00 por evento privado.' },
+      { name: 'aviso_link', label: 'Enlace del aviso', type: 'url', placeholder: 'Opcional' },
+      { name: 'aviso_link_texto', label: 'Texto del enlace', type: 'text', placeholder: 'Ver más' },
+      { name: 'aviso_hasta', label: 'Ocultar automáticamente después de', type: 'datetime', help: 'Opcional. Después de esta fecha el aviso desaparece solo.' },
+      { name: 'seo_titulo', label: 'Título para Google', type: 'text', wide: true, required: true, help: 'El título de la página de inicio en buscadores y pestañas.' },
+      { name: 'seo_descripcion', label: 'Descripción para Google', type: 'textarea', required: true, help: 'Unas 150 a 160 letras que resuman el restaurante.' },
+      { name: 'og_imagen', label: 'Imagen al compartir en redes', type: 'image', aspect: '1200 / 630', help: 'Se ve al compartir el enlace por WhatsApp o redes. Ideal 1200 × 630.' },
+      {
+        name: 'paginas',
+        label: 'Título y descripción por página',
+        type: 'list',
+        item: 'página',
+        help: 'Opcional. Si una página no está aquí, usa su texto por defecto.',
+        fields: [
+          { name: 'ruta', label: 'Página', type: 'select', required: true, options: paginas },
+          { name: 'titulo', label: 'Título', type: 'text' },
+          { name: 'descripcion', label: 'Descripción', type: 'text' },
+        ],
+      },
+      { name: 'url_sitio', label: 'Dirección principal del sitio', type: 'url', placeholder: 'https://casaolivorestaurante.cl', help: 'Se usa en el mapa del sitio para Google. Déjala vacía para usar la dirección actual.' },
+      { name: 'indexar', label: 'Permitir que Google muestre el sitio', type: 'boolean', help: 'Desactívalo solo si el sitio aún no debe aparecer en buscadores.' },
+    ],
+  },
   {
     key: 'general',
     label: 'Datos del local',

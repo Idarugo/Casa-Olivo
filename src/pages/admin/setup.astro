@@ -21,7 +21,7 @@ if (Astro.request.method === 'POST' && keyConfigured) {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) error = 'Escribe un correo válido.';
   else error = validatePassword(password) ?? '';
   if (!error) {
-    const user = await createUser(values.email, values.name, password);
+    const user = await createUser(values.email, values.name, password, 'admin');
     await startSession(Astro.cookies, user.id);
     return Astro.redirect('/admin?ok=bienvenida');
   }

@@ -1,0 +1,23 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { roles, isRole } from '../../lib/permissions';
+
+const user = Astro.locals.user!;
+const rol = isRole(user.role) ? roles[user.role] : null;
+Astro.response.status = 403;
+---
+
+<Admin title="Sin acceso" crumbs={[{ label: 'Sin acceso' }]}>
+  <div class="card">
+    <div class="empty-state">
+      <Icon name="lock-simple" size={40} />
+      <h2>Esta sección no está disponible para tu cuenta</h2>
+      <p>
+        Tu rol es <strong>{rol?.label ?? user.role}</strong>: {rol?.description ?? 'sin permisos asignados.'} Si necesitas entrar aquí, pídele
+        a un administrador que cambie tu rol.
+      </p>
+      <a class="btn btn--primary" href="/admin">Volver al resumen</a>
+    </div>
+  </div>
+</Admin>

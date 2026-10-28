@@ -1,16 +1,22 @@
 ---
 import '../styles/global.css';
 import { settingsSeed } from '../lib/seed';
+import Aviso from '../components/Aviso.astro';
 
 type Props = { title?: string; description?: string };
-const {
-  title = 'Casa Olivo · Cocina chilena en Olivar',
-  description = 'Restaurante de cocina chilena en una casona de más de cien años en Olivar, a minutos de Rancagua. Menú ejecutivo, celebraciones y reservas.',
-} = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
-const og = new URL('/img/og.jpg', Astro.site);
 // En páginas estáticas (404) no hay contenido cargado: se usan los datos iniciales
 const g = (Astro.locals.content?.general ?? settingsSeed.general) as Record<string, any>;
+const sitio = (Astro.locals.content?.sitio ?? settingsSeed.sitio) as Record<string, any>;
+
+// Título y descripción: lo que se configuró para esta página en el panel, si no, el de la página, si no, el general
+const ruta = Astro.url.pathname.replace(/\/$/, '') || '/';
+const propia = ((sitio.paginas ?? []) as { ruta: string; titulo?: string; descripcion?: string }[]).find((p) => p.ruta === ruta);
+const title = propia?.titulo || Astro.props.title || sitio.seo_titulo;
+const description = propia?.descripcion || Astro.props.description || sitio.seo_descripcion;
+
+const origin = sitio.url_sitio ? new URL(sitio.url_sitio).origin : Astro.url.origin;
+const canonical = new URL(Astro.url.pathname, origin);
+const og = new URL(sitio.og_imagen?.src ?? '/img/og.jpg', origin);
 const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
 ---
 
@@ -22,6 +28,7 @@ const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {!sitio.indexar && <meta name="robots" content="noindex, nofollow" />}
     <meta name="theme-color" content="#131209" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -50,7 +57,7 @@ const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
         name: 'Casa Olivo Restaurante',
         servesCuisine: 'Chilena',
         image: og.href,
-        url: Astro.site?.href,
+        url: `${origin}/`,
         telephone: tel,
         address: {
           '@type': 'PostalAddress',
@@ -71,6 +78,7 @@ const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
   <body>
     <a class="skip" href="#contenido">Saltar al contenido</a>
     <slot />
+    <Aviso sitio={sitio} />
     <div class="grain" aria-hidden="true"></div>
   </body>
 </html>

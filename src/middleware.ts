@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { currentUser } from './lib/auth';
+import { areaForPath, can } from './lib/permissions';
 import { loadContent } from './lib/content';
 
 const PUBLIC_ADMIN = ['/admin/login', '/admin/setup'];
@@ -14,6 +15,11 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     if (!ctx.locals.user && !PUBLIC_ADMIN.includes(path)) {
       if (path.startsWith('/admin/api/')) return Response.json({ error: 'Tu sesión expiró. Vuelve a ingresar.' }, { status: 401 });
       return ctx.redirect(`/admin/login?next=${encodeURIComponent(ctx.url.pathname + ctx.url.search)}`);
+    }
+    // Permisos por rol: cada ruta pertenece a un área
+    const area = areaForPath(path);
+    if (ctx.locals.user && area && !can(ctx.locals.user, area)) {
+      return ctx.rewrite('/admin/sin-permiso');
     }
     const res = await next();
     res.headers.set('Cache-Control', 'no-store');

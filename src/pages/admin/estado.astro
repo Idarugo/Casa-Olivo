@@ -1,0 +1,326 @@
+---
+import Admin from '../../layouts/Admin.astro';
+import Icon from '../../components/Icon.astro';
+import { runChecks, deployInfo, type Check, type Level } from '../../lib/health';
+
+const checks = await runChecks();
+const deploy = deployInfo();
+const at = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', timeStyle: 'medium' }).format(new Date());
+
+const errores = checks.filter((c) => c.level === 'error');
+const avisos = checks.filter((c) => c.level === 'warn');
+const general: Level = errores.length ? 'error' : avisos.length ? 'warn' : 'ok';
+const titulo =
+  general === 'ok'
+    ? 'Todo funciona'
+    : general === 'warn'
+      ? avisos.length === 1
+        ? 'Hay 1 detalle por revisar'
+        : `Hay ${avisos.length} detalles por revisar`
+      : errores.length === 1
+        ? '1 servicio con problemas'
+        : `${errores.length} servicios con problemas`;
+
+const grupos = ['Servicios', 'Servicios externos', 'Contenido', 'Seguridad'].map((g) => ({ g, items: checks.filter((c) => c.group === g) })).filter((x) => x.items.length);
+const iconFor: Record<Level, string> = { ok: 'check-circle', warn: 'warning-circle', error: 'x-circle', info: 'info' };
+const etiqueta: Record<Level, string> = { ok: 'Funciona', warn: 'Revisar', error: 'Falla', info: 'Info' };
+---
+
+<Admin title="Estado de servicios" description="Revisión en vivo de todo lo que necesita el sitio para funcionar." crumbs={[{ label: 'Administración' }, { label: 'Estado de servicios' }]} current="estado">
+  <Fragment slot="actions">
+    <a class="btn btn--quiet" href="/admin/estado" data-recheck>
+      <Icon name="arrow-clockwise" size={18} /> Revisar de nuevo
+    </a>
+  </Fragment>
+
+  <section class:list={['status', `status--${general}`]}>
+    <span class="status__pulse" aria-hidden="true"></span>
+    <div>
+      <h2>{titulo}</h2>
+      <p>Revisado hoy a las {at}. {checks.length} comprobaciones.</p>
+    </div>
+  </section>
+
+  <div class="estado">
+    <div class="estado__checks">
+      {
+        grupos.map(({ g, items }) => (
+          <section class="card">
+            <div class="card__head">
+              <h2>{g}</h2>
+            </div>
+            <ul class="checks">
+              {items.map((c: Check) => (
+                <li class:list={['check', `check--${c.level}`]}>
+                  <span class="check__icon">
+                    <Icon name={iconFor[c.level]} size={20} />
+                  </span>
+                  <span class="check__body">
+                    <strong>{c.label}</strong>
+                    <span>{c.detail}</span>
+                  </span>
+                  {c.ms !== undefined && <span class="check__ms">{c.ms} ms</span>}
+                  <span class="check__tag">{etiqueta[c.level]}</span>
+                  {c.href && (
+                    <a class="icon-btn" href={c.href} aria-label={`Ir a ${c.label}`}>
+                      <Icon name="arrow-right" size={16} />
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+
+    <aside class="card card__body deploy">
+      <h2>Versión publicada</h2>
+      <dl>
+        <div>
+          <dt>Entorno</dt>
+          <dd>{deploy.entorno}</dd>
+        </div>
+        {
+          deploy.commit && (
+            <div>
+              <dt>Versión</dt>
+              <dd>
+                {deploy.repo ? (
+                  <a href={`https://github.com/${deploy.repo}/commit/${deploy.commit}`} target="_blank" rel="noopener">
+                    {deploy.commit}
+                  </a>
+                ) : (
+                  deploy.commit
+                )}
+              </dd>
+            </div>
+          )
+        }
+        {
+          deploy.mensaje && (
+            <div class="deploy__msg">
+              <dt>Último cambio</dt>
+              <dd>{deploy.mensaje}</dd>
+            </div>
+          )
+        }
+        {
+          deploy.autor && (
+            <div>
+              <dt>Publicado por</dt>
+              <dd>{deploy.autor}</dd>
+            </div>
+          )
+        }
+        {
+          deploy.region && (
+            <div>
+              <dt>Región</dt>
+              <dd>{deploy.region}</dd>
+            </div>
+          )
+        }
+        <div>
+          <dt>Node</dt>
+          <dd>{deploy.node}</dd>
+        </div>
+      </dl>
+      <p class="field__help">
+        Los cambios de contenido no requieren publicar una versión nueva: se ven en el sitio en segundos.
+      </p>
+    </aside>
+  </div>
+</Admin>
+
+<script>
+  // Mientras se vuelve a revisar, mostrar que está trabajando
+  document.querySelector('[data-recheck]')?.addEventListener('click', (e) => {
+    const a = e.currentTarget as HTMLElement;
+    a.classList.add('is-busy');
+    a.lastChild!.textContent = ' Revisando…';
+  });
+</script>
+
+<style>
+  .status {
+    display: flex;
+    align-items: center;
+    gap: var(--s-300);
+    margin-bottom: var(--s-300);
+    padding: var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--bg-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    --c: var(--ok);
+  }
+  .status--warn {
+    --c: #ffb48f;
+  }
+  .status--error {
+    --c: var(--danger);
+  }
+  .status__pulse {
+    position: relative;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--r-full);
+    background: var(--c);
+  }
+  .status__pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--c);
+    animation: ping 2s var(--ease) infinite;
+  }
+  @keyframes ping {
+    from {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    to {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
+  .status h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .status p {
+    color: var(--ink-soft);
+  }
+
+  .estado {
+    display: grid;
+    gap: var(--s-300);
+    align-items: start;
+  }
+  .estado__checks {
+    display: grid;
+    gap: var(--s-300);
+  }
+  @media (min-width: 1100px) {
+    .estado {
+      grid-template-columns: 1fr 300px;
+    }
+    .deploy {
+      position: sticky;
+      top: var(--s-400);
+    }
+  }
+  .checks {
+    margin: 0;
+    padding: var(--s-100) var(--s-200) var(--s-200);
+    list-style: none;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+    padding: var(--s-100) var(--s-100);
+    border-radius: var(--r-xl);
+  }
+  .check + .check {
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .check__icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-full);
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+    color: var(--c);
+  }
+  .check--ok {
+    --c: var(--ok);
+  }
+  .check--warn {
+    --c: #ffb48f;
+  }
+  .check--error {
+    --c: var(--danger);
+  }
+  .check--info {
+    --c: var(--ink-soft);
+  }
+  .check__body {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+  }
+  .check__body span {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  .check__ms {
+    flex: none;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .check__tag {
+    flex: none;
+    padding: 0 var(--s-75);
+    border-radius: var(--r-full);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--c);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent);
+  }
+  .deploy h2 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .deploy dl {
+    display: grid;
+    gap: var(--s-100);
+    margin: var(--s-200) 0;
+  }
+  .deploy dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-200);
+    padding-bottom: var(--s-100);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.875rem;
+  }
+  .deploy dt {
+    color: var(--ink-soft);
+  }
+  .deploy dd {
+    margin: 0;
+    text-align: right;
+    font-weight: 500;
+  }
+  .deploy dd a {
+    color: var(--terracota);
+  }
+  .deploy__msg {
+    flex-direction: column;
+  }
+  .deploy__msg dd {
+    text-align: left;
+  }
+  @media (max-width: 640px) {
+    .check {
+      flex-wrap: wrap;
+    }
+    .check__ms {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status__pulse::after {
+      animation: none;
+    }
+  }
+</style>

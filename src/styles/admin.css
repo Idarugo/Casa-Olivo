@@ -1292,3 +1292,18 @@ input[type='datetime-local'].input {
     gap: var(--s-100);
   }
 }
+
+.aside__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-75);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 300ms var(--ease);
+}
+.aside__link:hover {
+  color: var(--terracota);
+}
