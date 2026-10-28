@@ -30,6 +30,8 @@ const SCHEMA = [
   // Intentos por dirección IP, para frenar ataques que prueban muchos correos
   `alter table login_attempts add column if not exists ip text`,
   `create index if not exists login_attempts_recent on login_attempts (at)`,
+  // Las sesiones duran como máximo 7 días: las de antes (30 días) se cierran
+  `delete from sessions where expires_at > now() + interval '8 days'`,
   // Colecciones con varios elementos: platos, shows, escenas…
   `create table if not exists entries (
     id serial primary key,
