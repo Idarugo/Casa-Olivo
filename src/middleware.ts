@@ -29,13 +29,12 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
   }
 
   // Sitio público: el contenido sale de la base de datos en cada visita
-  if (!ctx.isPrerendered) {
+  if (!ctx.isPrerendered && !path.startsWith('/api/')) {
     ctx.locals.content = await loadContent();
     const res = await next();
     if (ctx.request.method === 'GET' && res.status === 200 && !res.headers.has('Cache-Control')) {
-      // La CDN sirve la misma versión unos segundos; los cambios del panel aparecen casi de inmediato
-      res.headers.set('Cache-Control', 'public, max-age=0, s-maxage=5, stale-while-revalidate=30');
-      res.headers.set('Vercel-CDN-Cache-Control', 'max-age=5, stale-while-revalidate=30');
+      // Sin caché intermedia: cada visita ve lo último que se guardó en el panel
+      res.headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
     }
     return res;
   }

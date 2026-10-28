@@ -1,0 +1,163 @@
+---
+/*
+  Contenido en vivo: la página mira cada pocos segundos si el panel guardó algo.
+  Si hubo cambios, se recarga sola en un momento en que la persona no esté
+  escribiendo ni moviéndose, y conserva la posición donde estaba leyendo.
+*/
+type Props = { version: number };
+const { version } = Astro.props;
+---
+
+<div class="live" data-live={version} role="status" hidden>
+  <span class="live__dot" aria-hidden="true"></span>
+  Actualizado recién
+</div>
+
+<script>
+  const el = document.querySelector<HTMLElement>('[data-live]')!;
+  const version = Number(el.dataset.live);
+  const EVERY = 8000; // cada cuánto se pregunta
+  const QUIET = 2500; // tiempo sin actividad antes de recargar
+  const IDLE_STOP = 15 * 60_000; // sin actividad por 15 min se deja de preguntar
+
+  let lastActivity = Date.now();
+  let pending = false;
+  let timer = 0;
+
+  // Cualquier actividad cuenta, y si se había dejado de preguntar, se retoma
+  ['scroll', 'pointerdown', 'keydown', 'touchstart', 'wheel'].forEach((ev) =>
+    addEventListener(
+      ev,
+      () => {
+        lastActivity = Date.now();
+        if (!timer) schedule();
+      },
+      { passive: true },
+    ),
+  );
+
+  const busy = () => {
+    const a = document.activeElement;
+    return (
+      Date.now() - lastActivity < QUIET ||
+      (a instanceof HTMLElement && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) ||
+      !!document.querySelector('dialog[open]')
+    );
+  };
+
+  // Nunca dos recargas seguidas: si la página nueva sigue atrasada, se espera a la próxima visita
+  let lastReload = 0;
+  try {
+    lastReload = Number(sessionStorage.getItem('co-live-at')) || 0;
+  } catch {}
+
+  const reload = () => {
+    try {
+      sessionStorage.setItem('co-live', '1');
+      sessionStorage.setItem('co-live-at', String(Date.now()));
+    } catch {}
+    location.reload();
+  };
+
+  const tryApply = () => {
+    if (!pending || Date.now() - lastReload < 30_000) return;
+    if (document.hidden || !busy()) reload();
+    else setTimeout(tryApply, 1000);
+  };
+
+  const check = async () => {
+    clearTimeout(timer);
+    timer = 0;
+    try {
+      const res = await fetch('/api/version', { cache: 'no-store' });
+      const { v } = await res.json();
+      if (Number(v) > version) {
+        pending = true;
+        tryApply();
+        return;
+      }
+    } catch {}
+    schedule();
+  };
+
+  const schedule = () => {
+    clearTimeout(timer);
+    timer = 0;
+    if (document.hidden || pending) return;
+    if (Date.now() - lastActivity > IDLE_STOP) return;
+    timer = window.setTimeout(check, EVERY);
+  };
+
+  // Al volver a la pestaña (o desde el historial) se revisa de inmediato
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      lastActivity = Date.now();
+      check();
+    }
+  });
+  addEventListener('pageshow', (e) => {
+    if (e.persisted) check();
+  });
+  check();
+
+  // Tras una recarga automática, un aviso breve de que el contenido cambió
+  let recien = false;
+  try {
+    recien = sessionStorage.getItem('co-live') === '1';
+    sessionStorage.removeItem('co-live');
+  } catch {}
+  if (recien) {
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('is-in'));
+    setTimeout(() => {
+      el.classList.remove('is-in');
+      setTimeout(() => (el.hidden = true), 500);
+    }, 2600);
+  }
+</script>
+
+<style>
+  .live {
+    position: fixed;
+    top: calc(var(--s-200) + env(safe-area-inset-top));
+    left: 50%;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+    padding: var(--s-50) var(--s-200);
+    border-radius: var(--r-full);
+    background: rgba(39, 34, 25, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      inset 0 0 0 1px rgba(244, 123, 68, 0.4),
+      0 20px 50px rgba(0, 0, 0, 0.5);
+    color: var(--ink);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    transform: translate(-50%, -160%);
+    opacity: 0;
+    transition:
+      transform 600ms var(--ease),
+      opacity 400ms var(--ease);
+    pointer-events: none;
+  }
+  .live.is-in {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  .live__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--terracota);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live {
+      transition: opacity 200ms linear;
+      transform: translate(-50%, 0);
+    }
+  }
+</style>

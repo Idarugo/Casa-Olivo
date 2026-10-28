@@ -55,10 +55,17 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
+/** Cada cambio del panel queda en el historial: su último número sirve de versión del contenido */
+export async function contentVersion() {
+  const [row] = await query<{ v: number }>('select coalesce(max(id), 0)::int as v from audit');
+  return Number(row?.v ?? 0);
+}
+
 export async function loadContent() {
-  const [rows, settingRows] = await Promise.all([
+  const [rows, settingRows, version] = await Promise.all([
     query<{ id: number; collection: string; data: any }>('select id, collection, data from entries where deleted_at is null order by collection, position, id'),
     query<{ key: string; data: any }>('select key, data from settings'),
+    contentVersion(),
   ]);
 
   const by = (c: string) => rows.filter((r) => r.collection === c).map((r) => ({ id: String(r.id), ...r.data }));
@@ -147,6 +154,7 @@ export async function loadContent() {
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   return {
+    version,
     sitio,
     general,
     inicio,

@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { settingsSeed } from '../lib/seed';
 import Aviso from '../components/Aviso.astro';
+import Live from '../components/Live.astro';
 
 type Props = { title?: string; description?: string };
 // En páginas estáticas (404) no hay contenido cargado: se usan los datos iniciales
@@ -79,6 +80,7 @@ const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
     <a class="skip" href="#contenido">Saltar al contenido</a>
     <slot />
     <Aviso sitio={sitio} />
+    {Astro.locals.content && <Live version={Astro.locals.content.version} />}
     <div class="grain" aria-hidden="true"></div>
   </body>
 </html>
