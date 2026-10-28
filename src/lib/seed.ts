@@ -21,6 +21,14 @@ const categoriaImg: Record<string, { imagen: ReturnType<typeof img>; recorte?: b
 };
 
 export const settingsSeed: Record<string, unknown> = {
+  shows_info: {
+    promo_activa: false,
+    promo_titulo: '',
+    promo_texto: '',
+    promo_codigo: '',
+    promo_hasta: '',
+    nota: 'En días de espectáculo el happy hour no aplica.',
+  },
   sitio: {
     aviso_activo: false,
     aviso_texto: '',

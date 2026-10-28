@@ -78,6 +78,7 @@ export async function loadContent() {
   const hh = setting('happy_hour_info');
   const kara = setting('karaoke');
   const sitio = setting('sitio');
+  const si = setting('shows_info');
 
   const links = {
     reserva: '/reserva',
@@ -166,6 +167,13 @@ export async function loadContent() {
     menuEjecutivo,
     happyHour: { ...hh, tragos: by('happy_hour').map((t) => ({ nombre: t.nombre, precio: Number(t.precio) })) },
     shows,
+    showsInfo: {
+      nota: (si.nota || undefined) as string | undefined,
+      promo:
+        si.promo_activa && si.promo_titulo && (!si.promo_hasta || new Date(si.promo_hasta).getTime() > Date.now())
+          ? { titulo: si.promo_titulo as string, texto: (si.promo_texto || undefined) as string | undefined, codigo: (si.promo_codigo || '').trim() || undefined }
+          : null,
+    },
     karaoke: {
       ...kara,
       activo: kara.activo !== false,

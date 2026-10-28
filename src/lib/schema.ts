@@ -388,6 +388,21 @@ export const singletons: Singleton[] = [
     ],
   },
   {
+    key: 'shows_info',
+    label: 'Promoción y notas de shows',
+    group: 'Eventos',
+    icon: 'seal-percent',
+    description: 'Un descuento o convenio para las entradas, y la nota que va bajo los shows.',
+    fields: [
+      { name: 'promo_activa', label: 'Mostrar la promoción', type: 'boolean', help: 'Aparece destacada sobre los próximos shows.' },
+      { name: 'promo_titulo', label: 'Título', type: 'text', wide: true, placeholder: '20% de descuento para socios de O\'Higgins FC' },
+      { name: 'promo_texto', label: 'Detalle', type: 'textarea', placeholder: 'Socios y abonados del club, en las entradas de los próximos shows.' },
+      { name: 'promo_codigo', label: 'Código de descuento', type: 'text', placeholder: 'CIUDADCELESTE', help: 'Opcional. Se muestra con un botón para copiarlo.' },
+      { name: 'promo_hasta', label: 'Ocultar automáticamente después de', type: 'datetime', help: 'Opcional.' },
+      { name: 'nota', label: 'Nota bajo los shows', type: 'text', wide: true, placeholder: 'En días de espectáculo el happy hour no aplica.' },
+    ],
+  },
+  {
     key: 'karaoke',
     label: 'Concurso de karaoke',
     group: 'Karaoke',

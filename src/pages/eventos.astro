@@ -6,7 +6,8 @@ import Icon from '../components/Icon.astro';
 import ShowCard from '../components/ShowCard.astro';
 import { partes, termina, clp } from '../lib/format';
 
-const { shows, karaoke, links, artistas } = Astro.locals.content!;
+const { shows, karaoke, links, artistas, showsInfo } = Astro.locals.content!;
+const promo = showsInfo.promo;
 
 const proximos = shows.filter((s) => termina(s.fecha) > Date.now());
 const pasados = shows.filter((s) => termina(s.fecha) <= Date.now());
@@ -84,6 +85,25 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
           <p data-reveal style="--d:160ms">Cena, buena música y la casona iluminada. Compra tus entradas en Ticketplus.</p>
         </div>
 
+        {
+          promo && proximos.length > 0 && (
+            <div class="promo" data-reveal>
+              <span class="promo__icon" aria-hidden="true"><Icon name="seal-percent" size={28} /></span>
+              <div class="promo__text">
+                <strong>{promo.titulo}</strong>
+                {promo.texto && <p>{promo.texto}</p>}
+              </div>
+              {promo.codigo && (
+                <button type="button" class="promo__code" data-copy={promo.codigo} aria-label={`Copiar el código ${promo.codigo}`}>
+                  <span class="promo__label">Código</span>
+                  <span class="promo__value">{promo.codigo}</span>
+                  <span class="promo__hint" data-copy-hint aria-live="polite">Copiar</span>
+                </button>
+              )}
+            </div>
+          )
+        }
+
         <div class="stack" data-agenda data-stack>
           {
             proximos.map((s, i) => (
@@ -103,10 +123,14 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
           </div>
         </div>
 
-        <p class="shows__note">
-          <Icon name="clock" size={18} />
-          En días de espectáculo el happy hour no aplica.
-        </p>
+        {
+          showsInfo.nota && (
+            <p class="shows__note">
+              <Icon name="clock" size={18} />
+              {showsInfo.nota}
+            </p>
+          )
+        }
       </div>
     </section>
 
@@ -202,6 +226,20 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
 <script>
   import '../scripts/agenda';
   import '../scripts/scrollfx';
+
+  // Copiar el código de descuento
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const hint = b.querySelector<HTMLElement>('[data-copy-hint]');
+      try {
+        await navigator.clipboard.writeText(b.dataset.copy!);
+        if (hint) hint.textContent = '¡Copiado!';
+      } catch {
+        if (hint) hint.textContent = b.dataset.copy!;
+      }
+      setTimeout(() => hint && (hint.textContent = 'Copiar'), 2000);
+    }),
+  );
 
   const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -485,6 +523,91 @@ const conKaraoke = karaoke.activo && !!final && termina(final.fecha) > Date.now(
     }
     .kt h2 {
       font-size: 6rem;
+    }
+  }
+
+  /* Promoción de entradas */
+  .promo {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--s-200);
+    margin-bottom: var(--s-500);
+    padding: var(--s-300);
+    border-radius: var(--r-3xl);
+    background: linear-gradient(135deg, rgba(244, 123, 68, 0.16), rgba(244, 123, 68, 0.04));
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.35);
+  }
+  .promo__icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--r-full);
+    background: var(--terracota);
+    color: var(--terracota-ink);
+  }
+  .promo__text strong {
+    display: block;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+  .promo__text p {
+    margin-top: var(--s-50);
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+  }
+  .promo__code {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--s-100);
+    padding: var(--s-100) var(--s-200);
+    border: 1px dashed rgba(244, 123, 68, 0.6);
+    border-radius: var(--r-xl);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+    transition:
+      border-color 200ms var(--ease),
+      transform 200ms var(--ease);
+  }
+  .promo__code:hover {
+    border-color: var(--terracota);
+  }
+  .promo__code:active {
+    transform: scale(0.98);
+  }
+  .promo__code:focus-visible {
+    outline: 2px solid var(--terracota);
+    outline-offset: 3px;
+  }
+  .promo__label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+  }
+  .promo__value {
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+  .promo__hint {
+    margin-left: auto;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--terracota);
+  }
+  @media (min-width: 768px) {
+    .promo {
+      grid-template-columns: auto 1fr auto;
+      padding: var(--s-300) var(--s-400);
+    }
+    .promo__code {
+      grid-column: auto;
+      gap: var(--s-200);
     }
   }
 
