@@ -60,10 +60,25 @@ Los cambios se ven en el sitio en segundos, sin volver a desplegar. Atajos: <kbd
 
 ### Cómo funciona
 
-- El sitio corre en Vercel en modo servidor (`output: 'server'`). Cada página lee el contenido de Postgres al responder, y la CDN lo guarda 5 segundos.
+- El sitio corre en Vercel en modo servidor (`output: 'server'`). Cada página lee el contenido de Postgres al responder, sin caché intermedia.
+- Contenido en vivo: las páginas abiertas consultan `/api/version` cada 8 segundos y se recargan solas cuando el panel guarda algo, sin interrumpir a quien está escribiendo o moviéndose.
 - Base de datos: Postgres de Neon (`DATABASE_URL`). Las tablas se crean solas y, si la base está vacía, se carga el contenido original desde `src/lib/seed/`.
 - Fotos: se convierten a WebP en 1600 px y 900 px y se guardan en Vercel Blob (`BLOB_READ_WRITE_TOKEN`).
-- Sesiones con cookie `httpOnly`, contraseñas con scrypt y bloqueo de 15 minutos tras 5 intentos fallidos.
+
+### Seguridad
+
+- **Política de contenido (CSP):** Astro calcula el hash de cada script y estilo propio; el navegador no ejecuta nada más. Solo se permiten fotos de Vercel Blob y el iframe de Tableo.
+- **Cabeceras:** HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` y `frame-ancestors` (el panel no se puede incrustar en otra página).
+- **Origen estricto:** todo lo que escribe en el panel debe venir del propio sitio (`Origin` o `Sec-Fetch-Site`); si no, responde 403.
+- **Sesión:** cookie `__Secure-`, `httpOnly`, `SameSite=Strict`, solo en `/admin`, 7 días. En la base solo se guarda el hash del token.
+- **Ingreso:** contraseñas con scrypt; bloqueo de 15 minutos tras 5 fallos por correo o 20 por IP; la respuesta no revela qué correos existen.
+- **Contraseñas:** mínimo 10 caracteres y se rechazan las fáciles de adivinar; para cambiarla se pide la actual.
+- **Fotos:** se vuelven a codificar a WebP con un límite de píxeles, así que un archivo malicioso no llega al sitio.
+- **Dependencias:** `npm audit` sin vulnerabilidades (versiones parchadas con `overrides` en `package.json`).
+
+### Velocidad
+
+PageSpeed (móvil): 100 en rendimiento, accesibilidad, buenas prácticas y SEO. La fuente Manrope se sirve desde el propio sitio, el CSS va dentro de cada página, las fotos tienen versión de 900 px para teléfonos y el widget de Tableo carga recién cuando la persona se acerca al formulario.
 
 ### Puesta en marcha en Vercel
 
@@ -71,6 +86,7 @@ Los cambios se ven en el sitio en segundos, sin volver a desplegar. Atajos: <kbd
 2. **Storage → Create → Blob** y conéctalo al proyecto. Esto define `BLOB_READ_WRITE_TOKEN`.
 3. En **Settings → Environment Variables** agrega `SETUP_KEY` con un valor largo que solo tú conozcas.
 4. Despliega y entra a `/admin/setup`: con la `SETUP_KEY` creas la primera cuenta. Desde **Usuarios** puedes invitar a más personas.
+5. Borra `SETUP_KEY` de Vercel y vuelve a desplegar: con una cuenta creada, `/admin/setup` queda cerrado.
 
 ### Desarrollo local
 
