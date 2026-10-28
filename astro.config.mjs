@@ -21,7 +21,8 @@ export default defineConfig({
         "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
         "font-src 'self'",
         "connect-src 'self'",
-        'frame-src https://app.tableo.com',
+        // El resumen del panel muestra el propio sitio en miniatura
+        "frame-src 'self' https://app.tableo.com",
         "media-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
