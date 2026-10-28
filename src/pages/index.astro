@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Cinematic from '../components/Cinematic.astro';
+import Tagline from '../components/Tagline.astro';
+import Cocina from '../components/Cocina.astro';
+import MenuEjecutivo from '../components/MenuEjecutivo.astro';
+import Celebraciones from '../components/Celebraciones.astro';
+import Visita from '../components/Visita.astro';
+import Agenda from '../components/Agenda.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base>
+  <div id="top"></div>
+  <Nav />
+  <main id="contenido">
+    <Cinematic />
+    <Tagline />
+    <Cocina />
+    <MenuEjecutivo />
+    <Celebraciones />
+    <Agenda />
+    <Visita />
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  import '../scripts/scrollfx';
+  import '../scripts/agenda';
+</script>

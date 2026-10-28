@@ -1,0 +1,168 @@
+---
+import { links } from '../data/site';
+import Icon from './Icon.astro';
+
+const tiempos = [
+  { n: '01', nombre: 'Entrada' },
+  { n: '02', nombre: 'Fondo' },
+  { n: '03', nombre: 'Postre' },
+  { n: '04', nombre: 'Infusión o café' },
+];
+---
+
+<section class="menu" id="menu" aria-labelledby="menu-title">
+  <div class="wrap menu__grid">
+    <div class="menu__intro">
+      <span class="eyebrow" data-reveal>Menú ejecutivo</span>
+      <h2 id="menu-title" data-reveal style="--d:80ms">El mejor sabor, todos los días</h2>
+      <p data-reveal style="--d:160ms">
+        Un almuerzo completo de cocina chilena para tu semana, preparado al momento con productos frescos.
+      </p>
+      <p class="menu__when" data-reveal style="--d:240ms">
+        <Icon name="clock" size={20} />
+        Miércoles a viernes, de 12:30 a 17:00
+      </p>
+    </div>
+
+    <div class="menu__card" data-reveal style="--d:120ms">
+      <div class="menu__price">
+        <span class="menu__currency">$</span>
+        <span data-count="9900">9.900</span>
+      </div>
+      <p class="menu__per">por persona</p>
+      <ol class="menu__list">
+        {
+          tiempos.map((t) => (
+            <li>
+              <span>{t.n}</span>
+              {t.nombre}
+            </li>
+          ))
+        }
+      </ol>
+      <a class="btn btn--primary menu__cta" href={links.reserva}>
+        <Icon name="calendar-check" size={20} />
+        Reserva tu almuerzo
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .menu {
+    padding-block: var(--s-900);
+    background: var(--bg);
+  }
+  .menu__grid {
+    display: grid;
+    gap: var(--s-600);
+    align-items: center;
+  }
+  .menu__intro > * + * {
+    margin-top: var(--s-300);
+  }
+  .menu__intro h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .menu__intro p {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+    max-width: 44ch;
+  }
+  .menu__when {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    color: var(--ink) !important;
+    font-weight: 500;
+  }
+
+  .menu__card {
+    position: relative;
+    padding: var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    overflow: hidden;
+  }
+  .menu__card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('/img/luces-sm.webp') top center / 140% auto no-repeat;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .menu__price {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-50);
+    font-size: 6rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--terracota);
+  }
+  .menu__currency {
+    font-size: 3rem;
+    line-height: 1;
+    margin-top: var(--s-100);
+  }
+  .menu__per {
+    margin-top: var(--s-75);
+    color: var(--ink-soft);
+  }
+  .menu__list {
+    margin: var(--s-400) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+  }
+  .menu__list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-200);
+    padding-block: var(--s-200);
+    border-top: 1px solid var(--line);
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+  }
+  .menu__list span {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--terracota);
+    font-variant-numeric: tabular-nums;
+  }
+  .menu__cta {
+    position: relative;
+    margin-top: var(--s-300);
+    width: 100%;
+    justify-content: center;
+  }
+
+  @media (min-width: 900px) {
+    .menu {
+      padding-block: 160px;
+    }
+    .menu__grid {
+      grid-template-columns: 1fr 440px;
+      gap: var(--s-900);
+    }
+    .menu__intro h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .menu__card {
+      padding: var(--s-600);
+    }
+    .menu__price {
+      font-size: 8rem;
+    }
+  }
+</style>

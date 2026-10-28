@@ -1,0 +1,76 @@
+---
+const lines = ['Comida honesta,', 'tragos con carácter', 'y una atención que te abraza.'];
+let n = 0;
+---
+
+<section class="tagline" aria-label="Nuestra promesa">
+  <div class="wrap">
+    <p class="tagline__text" data-words>
+      {
+        lines.map((line) => (
+          <span class="tagline__line">
+            {line.split(' ').map((w) => (
+              <span class="tagline__word" style={`--w:${n++}`}>
+                {w}{' '}
+              </span>
+            ))}
+          </span>
+        ))
+      }
+    </p>
+    <p class="tagline__note" data-reveal>
+      Creemos que la experiencia no está solo en lo que comes, sino en cómo te hacen sentir.
+    </p>
+  </div>
+</section>
+
+<style>
+  .tagline {
+    padding-block: var(--s-900) var(--s-900);
+    background: var(--bg);
+  }
+  .tagline__text {
+    max-width: 920px;
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .tagline__line {
+    display: block;
+  }
+  .tagline__word {
+    color: var(--ink-mute);
+    transition: color 600ms var(--ease);
+  }
+  .tagline__word.is-on {
+    color: var(--ink);
+  }
+  .tagline__line:last-child .tagline__word.is-on:nth-last-child(-n + 2) {
+    color: var(--terracota);
+  }
+  .tagline__note {
+    margin-top: var(--s-600);
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 768px) {
+    .tagline {
+      padding-block: 160px;
+    }
+    .tagline__text {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .tagline__line + .tagline__line {
+      margin-top: var(--s-100);
+    }
+  }
+  @media (min-width: 1280px) {
+    .tagline__text {
+      font-size: 4.5rem;
+    }
+  }
+</style>

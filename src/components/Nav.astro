@@ -1,0 +1,236 @@
+---
+import { links } from '../data/site';
+
+type Props = { current?: 'inicio' | 'carta' | 'reserva' | 'eventos' };
+const { current = 'inicio' } = Astro.props;
+
+// En el inicio las anclas son locales; en otras páginas vuelven al inicio.
+const base = current === 'inicio' ? '' : '/';
+const items = [
+  { label: 'La casona', href: `${base}#casona` },
+  { label: 'Carta', href: links.carta, page: 'carta' },
+  { label: 'Menú ejecutivo', href: `${base}#menu`, spy: 'menu' },
+  { label: 'Eventos', href: '/eventos', page: 'eventos' },
+  { label: 'Visítanos', href: `${base}#visita`, spy: 'visita' },
+];
+---
+
+<header class="nav" data-nav>
+  <div class="nav__bar">
+    <a class="nav__brand" href={current === 'inicio' ? '#top' : '/'} aria-label="Casa Olivo, volver al inicio">
+      <img src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" />
+    </a>
+    <nav class="nav__links" aria-label="Principal">
+      {
+        items.map((i) => (
+          <a href={i.href} data-section={current === 'inicio' ? i.spy : undefined} aria-current={i.page === current ? 'page' : undefined}>
+            {i.label}
+          </a>
+        ))
+      }
+    </nav>
+    <a class="btn btn--primary nav__cta" href={links.reserva} aria-current={current === 'reserva' ? 'page' : undefined}>Reservar</a>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="menu-movil" aria-label="Abrir menú">
+      <span></span><span></span>
+    </button>
+  </div>
+
+  <div class="nav__panel" id="menu-movil" hidden>
+    <nav aria-label="Móvil">
+      {
+        items.map((i, n) => (
+          <a href={i.href} style={`--i:${n}`} aria-current={i.page === current ? 'page' : undefined}>
+            {i.label}
+          </a>
+        ))
+      }
+      <a class="btn btn--primary" style={`--i:${items.length}`} href={links.reserva}>Reserva tu mesa</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: fixed;
+    top: var(--s-200);
+    left: var(--s-200);
+    right: var(--s-200);
+    z-index: 80;
+    width: fit-content;
+    margin-inline: auto;
+  }
+  .nav__bar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--s-300);
+    padding: var(--s-75) var(--s-75) var(--s-75) var(--s-300);
+    border-radius: var(--r-full);
+    background: rgba(19, 18, 9, 0.55);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .nav__brand img {
+    height: 28px;
+    width: auto;
+  }
+  .nav__links {
+    display: none;
+    gap: var(--s-50);
+  }
+  .nav__links a {
+    padding: var(--s-75) var(--s-100);
+    border-radius: var(--r-full);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition:
+      color 300ms var(--ease),
+      background-color 300ms var(--ease);
+  }
+  .nav__links a:hover,
+  .nav__links a[aria-current='true'],
+  .nav__links a[aria-current='page'] {
+    color: var(--ink);
+    background: rgba(240, 231, 215, 0.08);
+  }
+  .nav__cta {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    min-height: 40px;
+  }
+
+  .nav__toggle {
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--r-full);
+    background: rgba(240, 231, 215, 0.08);
+    cursor: pointer;
+  }
+  .nav__toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ink);
+    transition: transform 500ms var(--ease);
+  }
+  .nav.is-open .nav__toggle span:first-child {
+    transform: translateY(4px) rotate(45deg);
+  }
+  .nav.is-open .nav__toggle span:last-child {
+    transform: translateY(-4px) rotate(-45deg);
+  }
+
+  .nav__panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    padding: 120px var(--s-300) var(--s-600);
+    background: rgba(19, 18, 9, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .nav__panel nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-200);
+  }
+  .nav__panel a:not(.btn) {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .nav__panel .btn {
+    margin-top: var(--s-300);
+  }
+  .nav__panel a {
+    opacity: 0;
+    transform: translateY(var(--s-300));
+  }
+  .nav.is-open .nav__panel a {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 500ms var(--ease),
+      transform 500ms var(--ease);
+    transition-delay: min(calc(var(--i) * 60ms), 400ms);
+  }
+
+  @media (min-width: 1024px) {
+    .nav__links {
+      display: flex;
+    }
+    .nav__toggle,
+    .nav__panel {
+      display: none !important;
+    }
+  }
+  @media (max-width: 1023px) {
+    .nav {
+      width: auto;
+    }
+    .nav__bar {
+      justify-content: space-between;
+      gap: var(--s-100);
+    }
+    .nav__cta {
+      margin-left: auto;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav__panel a {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  const nav = document.querySelector<HTMLElement>('[data-nav]')!;
+  const toggle = nav.querySelector<HTMLButtonElement>('.nav__toggle')!;
+  const panel = nav.querySelector<HTMLElement>('.nav__panel')!;
+
+  function setOpen(open: boolean) {
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    document.documentElement.style.overflow = open ? 'hidden' : '';
+    if (open) {
+      panel.hidden = false;
+      requestAnimationFrame(() => nav.classList.add('is-open'));
+    } else {
+      nav.classList.remove('is-open');
+      panel.hidden = true;
+    }
+  }
+  toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+  panel.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
+  });
+
+  // Marca la sección actual en la navegación
+  const navLinks = [...nav.querySelectorAll<HTMLAnchorElement>('.nav__links a[data-section]')];
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        navLinks.forEach((a) => a.setAttribute('aria-current', String(a.dataset.section === e.target.id)));
+      }
+    },
+    { rootMargin: '-45% 0px -50% 0px' },
+  );
+  // Se observan todas las secciones para que el enlace se apague al salir de la suya
+  document.querySelectorAll('main section[id]').forEach((t) => io.observe(t));
+</script>

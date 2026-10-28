@@ -1,0 +1,151 @@
+---
+import { links } from '../data/site';
+import Icon from './Icon.astro';
+---
+
+<section class="celebra" id="celebraciones" aria-labelledby="celebra-title">
+  <div class="celebra__media" data-unveil>
+    <img
+      src="/img/mesa.webp"
+      srcset="/img/mesa-sm.webp 900w, /img/mesa.webp 1200w"
+      sizes="(min-width: 900px) 50vw, 100vw"
+      alt="Mesa larga montada con copas y servilletas junto a la ventana"
+      width="1200"
+      height="1600"
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+
+  <div class="celebra__text">
+    <span class="eyebrow" data-reveal>Celebraciones</span>
+    <h2 id="celebra-title" data-reveal style="--d:80ms">Celebraciones con sabor local</h2>
+    <p data-reveal style="--d:160ms">¿Buscas un espacio auténtico para celebrar? En Casa Olivo te ofrecemos:</p>
+    <ul class="celebra__list">
+      <li data-reveal style="--d:200ms">
+        <Icon name="fork-knife" size={24} />
+        <div>
+          <h3>Menús especiales</h3>
+          <p>Para grupos y ocasiones, pensados junto a ti.</p>
+        </div>
+      </li>
+      <li data-reveal style="--d:260ms">
+        <Icon name="champagne" size={24} />
+        <div>
+          <h3>Cenas temáticas</h3>
+          <p>Con productos de estación y lo mejor de nuestra carta.</p>
+        </div>
+      </li>
+    </ul>
+    <div data-reveal style="--d:320ms">
+      <a class="btn btn--primary" href={links.whatsapp} target="_blank" rel="noopener">
+        <Icon name="whatsapp-logo" size={20} />
+        Cotiza tu celebración
+      </a>
+    </div>
+
+    <div class="celebra__equipo" data-reveal>
+      <h3>Y lo más importante, nuestro equipo</h3>
+      <p>
+        Personas cercanas, comprometidas, alegres y atentas, que entienden que comer bien también es sentirse bien recibido.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .celebra {
+    display: grid;
+    background: var(--bg-2);
+  }
+  .celebra__media {
+    position: relative;
+    height: 80vh;
+    overflow: hidden;
+    clip-path: inset(var(--inset, 12%) round var(--r-3xl));
+    will-change: clip-path;
+  }
+  .celebra__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(var(--zoom, 1.2));
+    will-change: transform;
+  }
+  .celebra__text {
+    padding: var(--s-700) var(--gutter) var(--s-900);
+    align-self: center;
+    max-width: 640px;
+  }
+  .celebra__text > * + * {
+    margin-top: var(--s-300);
+  }
+  .celebra__text h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .celebra__text > p {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .celebra__list {
+    list-style: none;
+    margin-block: var(--s-300) 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-100);
+  }
+  .celebra__list li {
+    display: flex;
+    gap: var(--s-200);
+    padding: var(--s-300);
+    border-radius: var(--r-2xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .celebra__list .icon {
+    color: var(--terracota);
+  }
+  .celebra__list h3 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .celebra__list p {
+    color: var(--ink-soft);
+  }
+  .celebra__equipo {
+    margin-top: var(--s-700) !important;
+    padding-top: var(--s-400);
+    border-top: 1px solid var(--line);
+  }
+  .celebra__equipo h3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .celebra__equipo p {
+    margin-top: var(--s-100);
+    color: var(--ink-soft);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+
+  @media (min-width: 900px) {
+    .celebra {
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+    .celebra__media {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .celebra__text {
+      padding: var(--s-900) var(--s-800);
+    }
+    .celebra__text h2 {
+      font-size: 3rem;
+      line-height: 1;
+    }
+  }
+</style>

@@ -1,0 +1,392 @@
+---
+import { scenes, links } from '../data/site';
+import Icon from './Icon.astro';
+
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<section class="cine" data-cine style={`--n:${scenes.length}`} aria-label="Recorrido por Casa Olivo">
+  <div class="cine__sticky">
+    <div class="cine__stage">
+      {
+        scenes.map((s, i) => (
+          <div class="cine__scene" data-scene style={`--fx:${s.focal[0]}%;--fy:${s.focal[1]}%`}>
+            <img
+              src={`/img/${s.img}.webp`}
+              srcset={`/img/${s.img}-sm.webp 900w, /img/${s.img}.webp 1600w`}
+              sizes="100vw"
+              alt={s.alt}
+              loading={i < 2 ? 'eager' : 'lazy'}
+              fetchpriority={i === 0 ? 'high' : 'auto'}
+              decoding="async"
+            />
+          </div>
+        ))
+      }
+      <div class="cine__flash" data-flash aria-hidden="true"></div>
+      <div class="cine__shade" aria-hidden="true"></div>
+    </div>
+
+    <div class="cine__copy wrap">
+      {
+        scenes.map((s, i) => (
+          <article class:list={['cine__chapter', { 'cine__chapter--hero': i === 0 }]} data-copy id={i === 0 ? undefined : s.id}>
+            {i === 0 ? (
+              <>
+                <span class="eyebrow">{s.eyebrow}</span>
+                <h1 class="hero-title">
+                  Cocina chilena
+                  <br />
+                  en una casona
+                  <br />
+                  con más de cien años
+                </h1>
+                <p class="cine__body">{s.body}</p>
+                <div class="cine__ctas">
+                  <a class="btn btn--primary" href={links.reserva}>
+                    Reserva tu mesa
+                    <Icon name="arrow-right" size={18} />
+                  </a>
+                  <a class="btn btn--ghost" href={links.carta}>
+                    Ver la carta
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <span class="eyebrow">
+                  <span class="cine__num">{pad(i)}</span>
+                  {s.eyebrow}
+                </span>
+                <h2 class="cine__title">{s.title}</h2>
+                <p class="cine__body">{s.body}</p>
+                {i === scenes.length - 1 && (
+                  <div class="cine__ctas">
+                    <a class="btn btn--primary" href={links.carta}>
+                      Revisa nuestra carta
+                      <Icon name="arrow-right" size={18} />
+                    </a>
+                  </div>
+                )}
+              </>
+            )}
+          </article>
+        ))
+      }
+    </div>
+
+    <ol class="cine__rail" aria-label="Capítulos">
+      {
+        scenes.map((s, i) => (
+          <li>
+            <button type="button" data-jump={i}>
+              <span class="cine__rail-label">{s.label}</span>
+              <i />
+            </button>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="cine__hint" data-hint aria-hidden="true">
+      <span>Desliza para entrar</span>
+      <i></i>
+    </div>
+    <div class="cine__progress" aria-hidden="true"><span data-progress></span></div>
+  </div>
+</section>
+
+<style>
+  /* Cada escena recibe 130vh de scroll; la última se queda un poco más. */
+  .cine {
+    position: relative;
+    height: calc(var(--n) * 130vh + 60vh);
+  }
+  .cine__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+  }
+  .cine__stage {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    isolation: isolate;
+    background: var(--bg);
+  }
+  .cine__scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    overflow: hidden;
+    will-change: opacity;
+  }
+  .cine__scene:first-child {
+    opacity: 1;
+  }
+  .cine__scene img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--fx) var(--fy);
+    transform-origin: var(--fx) var(--fy);
+    transform: scale(1.04);
+    will-change: transform;
+  }
+  .cine__flash {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    opacity: 0;
+    background: radial-gradient(60% 60% at 50% 50%, rgba(255, 196, 140, 0.9), rgba(244, 123, 68, 0.35) 55%, transparent 80%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  /* Velo para legibilidad del texto */
+  .cine__shade {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    background:
+      linear-gradient(90deg, rgba(19, 18, 9, 0.9) 0%, rgba(19, 18, 9, 0.72) 42%, rgba(19, 18, 9, 0) 76%),
+      linear-gradient(0deg, rgba(19, 18, 9, 0.7) 0%, rgba(19, 18, 9, 0) 40%),
+      radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+    pointer-events: none;
+  }
+  @media (max-width: 767px) {
+    .cine__shade {
+      background:
+        linear-gradient(0deg, rgba(19, 18, 9, 0.95) 0%, rgba(19, 18, 9, 0.85) 32%, rgba(19, 18, 9, 0) 68%),
+        linear-gradient(180deg, rgba(19, 18, 9, 0.5) 0%, rgba(19, 18, 9, 0) 20%);
+    }
+  }
+
+  .cine__copy {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .cine__chapter {
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(var(--s-900) + env(safe-area-inset-bottom));
+    max-width: 680px;
+    opacity: 0;
+    will-change: opacity, transform;
+  }
+  .cine__chapter--hero {
+    opacity: 1;
+    max-width: 800px;
+  }
+  .cine__chapter > * + * {
+    margin-top: var(--s-200);
+  }
+  .cine__num {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    opacity: 0.6;
+  }
+  .hero-title {
+    font-size: 3rem;
+    line-height: 1;
+    background: linear-gradient(90deg, #ffffff 0%, #c9bfae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-bottom: 0.08em;
+  }
+  .cine__title {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .cine__body {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--ink-soft);
+    max-width: 44ch;
+  }
+  .cine__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-100);
+    padding-top: var(--s-75);
+  }
+  .cine__ctas .btn {
+    pointer-events: auto;
+  }
+
+  @media (min-width: 768px) {
+    .cine__chapter {
+      top: 50%;
+      bottom: auto;
+      transform: translateY(-50%);
+    }
+    .cine__chapter > * + * {
+      margin-top: var(--s-300);
+    }
+    .hero-title {
+      font-size: 4.5rem;
+    }
+    .cine__title {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .cine__body {
+      font-size: 1.125rem;
+      line-height: 1.75rem;
+    }
+  }
+
+  .cine__rail {
+    position: absolute;
+    right: var(--gutter);
+    top: 50%;
+    z-index: 4;
+    transform: translateY(-50%);
+    display: none;
+    flex-direction: column;
+    gap: var(--s-300);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cine__rail::before {
+    content: '';
+    position: absolute;
+    right: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--line);
+  }
+  .cine__rail button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--s-100);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .cine__rail i {
+    width: 13px;
+    height: 13px;
+    border-radius: var(--r-full);
+    box-shadow: inset 0 0 0 1px rgba(240, 231, 215, 0.5);
+    background: var(--bg);
+    transition:
+      transform 500ms var(--ease),
+      background-color 300ms var(--ease),
+      box-shadow 300ms var(--ease);
+  }
+  .cine__rail-label {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateX(var(--s-75));
+    transition:
+      opacity 300ms var(--ease),
+      transform 500ms var(--ease);
+  }
+  .cine__rail button:hover .cine__rail-label,
+  .cine__rail button[aria-current='true'] .cine__rail-label {
+    opacity: 1;
+    transform: none;
+  }
+  .cine__rail button[aria-current='true'] i {
+    background: var(--terracota);
+    box-shadow: 0 0 0 4px rgba(244, 123, 68, 0.25);
+    transform: scale(1.15);
+  }
+  @media (min-width: 1024px) {
+    .cine__rail {
+      display: flex;
+    }
+  }
+
+  .cine__hint {
+    position: absolute;
+    left: 50%;
+    bottom: var(--s-300);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-75);
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .cine__hint i {
+    position: relative;
+    width: 22px;
+    height: 34px;
+    border-radius: var(--r-xl);
+    box-shadow: inset 0 0 0 1.5px rgba(240, 231, 215, 0.4);
+  }
+  .cine__hint i::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 7px;
+    width: 4px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--terracota);
+    transform: translateX(-50%);
+    animation: wheel 1.8s var(--ease) infinite;
+  }
+  @keyframes wheel {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 0);
+    }
+    40% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, 10px);
+    }
+  }
+  @media (max-width: 767px) {
+    .cine__hint {
+      display: none;
+    }
+  }
+
+  .cine__progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    height: 2px;
+    background: rgba(240, 231, 215, 0.08);
+  }
+  .cine__progress span {
+    display: block;
+    height: 100%;
+    background: var(--terracota);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+</style>
+
+<script>
+  import { mountCinematic } from '../scripts/cinematic';
+  const root = document.querySelector<HTMLElement>('[data-cine]');
+  if (root) mountCinematic(root);
+</script>

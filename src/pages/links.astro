@@ -1,0 +1,254 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { links } from '../data/site';
+import { shows, termina, partes } from '../data/eventos';
+
+// Enlace de la bio de Instagram. Mantiene los botones del sitio anterior.
+const principales = [
+  { label: 'Reserva tu mesa', href: links.reserva, icon: 'calendar-check', primary: true },
+  { label: 'Carta', href: links.carta, icon: 'fork-knife' },
+  { label: 'Eventos y shows', href: '/eventos', icon: 'music-notes' },
+  { label: 'Concurso de karaoke', href: '/karaoke', icon: 'microphone-stage' },
+  { label: 'Horarios y ubicación', href: '/#visita', icon: 'map-pin' },
+  { label: 'Pedidos y retiro por WhatsApp', href: links.whatsapp, icon: 'whatsapp-logo', external: true },
+];
+const entradas = shows.filter((s) => termina(s.fecha) > Date.now());
+---
+
+<Base title="Casa Olivo · Links" description="Reservas, carta, eventos y entradas de Casa Olivo Restaurante en Olivar.">
+  <main id="contenido" class="lk">
+    <div class="lk__bg" aria-hidden="true">
+      <img src="/img/casona-noche-sm.webp" alt="" fetchpriority="high" />
+    </div>
+
+    <div class="lk__card">
+      <a href="/" class="lk__logo" aria-label="Ir al sitio de Casa Olivo">
+        <img src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" />
+      </a>
+      <h1 class="lk__hi">¡Bienvenidos a Casa Olivo!</h1>
+      <p class="lk__sub">Cocina chilena en una casona con más de cien años. Olivar, sexta región.</p>
+
+      <ul class="lk__list">
+        {
+          principales.map((l, i) => (
+            <li style={`--i:${i}`}>
+              <a class:list={['lk__btn', { 'lk__btn--primary': l.primary }]} href={l.href} {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}>
+                <Icon name={l.icon} size={20} />
+                <span>{l.label}</span>
+                <Icon name={l.external ? 'arrow-up-right' : 'arrow-right'} size={16} class="lk__go" />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div data-agenda>
+        {
+          entradas.length > 0 && (
+            <p class="lk__label" data-ends={termina(entradas.at(-1)!.fecha)}>
+              Entradas
+            </p>
+          )
+        }
+        <ul class="lk__list">
+          {
+            entradas.map((s, i) => {
+              const f = partes(s.fecha);
+              return (
+                <li style={`--i:${principales.length + i}`} data-ends={termina(s.fecha)}>
+                  <a class="lk__btn lk__btn--show" href={s.entradas} target="_blank" rel="noopener">
+                    <img src={s.poster} alt="" width="40" height="40" loading="lazy" />
+                    <span>
+                      {s.artista}
+                      <small>
+                        {f.semana} {f.dia} de {f.mes}, {f.hora} hrs
+                      </small>
+                    </span>
+                    <Icon name="ticket" size={18} class="lk__go" />
+                  </a>
+                </li>
+              );
+            })
+          }
+        </ul>
+      </div>
+
+      <a class="lk__ig" href={links.instagram} target="_blank" rel="noopener">
+        <Icon name="instagram-logo" size={20} />
+        @casaolivorestaurante
+      </a>
+    </div>
+  </main>
+</Base>
+
+<script>
+  import '../scripts/agenda';
+</script>
+
+<style>
+  .lk {
+    position: relative;
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: var(--s-600) var(--s-200);
+    isolation: isolate;
+  }
+  .lk__bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+  }
+  .lk__bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(6px);
+    transform: scale(1.08);
+  }
+  .lk__bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(19, 18, 9, 0.72);
+  }
+  .lk__card {
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+  }
+  .lk__logo img {
+    width: 200px;
+    height: auto;
+    margin-inline: auto;
+  }
+  .lk__hi {
+    margin-top: var(--s-300);
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .lk__sub {
+    margin-top: var(--s-75);
+    color: var(--ink-soft);
+  }
+  .lk__list {
+    display: grid;
+    gap: var(--s-100);
+    margin: var(--s-400) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .lk__list li {
+    animation: rise 600ms var(--ease) both;
+    animation-delay: min(calc(var(--i) * 60ms), 400ms);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(var(--s-300));
+    }
+  }
+  .lk__label {
+    margin-top: var(--s-500);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracota);
+  }
+  .lk__label + .lk__list {
+    margin-top: var(--s-200);
+  }
+  .lk__btn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+    min-height: 56px;
+    padding: var(--s-100) var(--s-300);
+    border-radius: var(--r-full);
+    background: rgba(39, 34, 25, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    transition:
+      transform 500ms var(--ease),
+      box-shadow 300ms var(--ease),
+      background-color 300ms var(--ease);
+  }
+  .lk__btn:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.6);
+  }
+  .lk__btn:active {
+    transform: scale(0.98);
+  }
+  .lk__btn > span {
+    flex: 1;
+  }
+  .lk__btn > .icon:first-child {
+    color: var(--terracota);
+  }
+  .lk__btn :global(.lk__go) {
+    color: var(--ink-soft);
+  }
+  .lk__btn--primary {
+    background: var(--terracota);
+    color: var(--terracota-ink);
+    box-shadow: none;
+  }
+  .lk__btn--primary > .icon:first-child,
+  .lk__btn--primary :global(.lk__go) {
+    color: var(--terracota-ink);
+  }
+  .lk__btn--primary:hover {
+    background: #ff8c57;
+    box-shadow: none;
+  }
+  .lk__btn--show {
+    padding-left: var(--s-100);
+    border-radius: var(--r-2xl);
+  }
+  .lk__btn--show img {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-lg);
+    object-fit: cover;
+  }
+  .lk__btn--show span {
+    display: flex;
+    flex-direction: column;
+  }
+  .lk__btn--show small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+  .lk__ig {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    margin-top: var(--s-500);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 300ms var(--ease);
+  }
+  .lk__ig:hover {
+    color: var(--ink);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lk__list li {
+      animation-name: fade;
+    }
+    @keyframes fade {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+</style>

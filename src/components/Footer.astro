@@ -1,0 +1,71 @@
+---
+import { links } from '../data/site';
+import Icon from './Icon.astro';
+---
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <img src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" loading="lazy" />
+    <div class="footer__cols">
+      <a href={links.instagram} target="_blank" rel="noopener">
+        <Icon name="instagram-logo" size={20} />
+        @casaolivorestaurante
+      </a>
+      <a href={links.whatsapp} target="_blank" rel="noopener">
+        <Icon name="whatsapp-logo" size={20} />
+        +56 9 5878 5050
+      </a>
+      <a href={links.maps} target="_blank" rel="noopener">
+        <Icon name="map-pin" size={20} />
+        Av. Julio Silva 597, Olivar
+      </a>
+    </div>
+    <p class="footer__legal">© {new Date().getFullYear()} Casa Olivo Restaurante</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    padding-block: var(--s-700) var(--s-500);
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+  .footer__inner {
+    display: grid;
+    gap: var(--s-400);
+  }
+  .footer img {
+    width: 160px;
+    height: auto;
+  }
+  .footer__cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-200) var(--s-400);
+  }
+  .footer__cols a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 300ms var(--ease);
+  }
+  .footer__cols a:hover {
+    color: var(--ink);
+  }
+  .footer__legal {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 900px) {
+    .footer__inner {
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+    }
+    .footer__cols {
+      justify-content: center;
+    }
+  }
+</style>

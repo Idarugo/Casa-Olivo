@@ -1,0 +1,336 @@
+---
+import type { Categoria } from '../data/carta';
+import { clp } from '../data/carta';
+
+type Props = {
+  cat: Categoria;
+  n: number;
+  img?: { src: string; alt: string; cutout?: boolean };
+};
+const { cat, n, img } = Astro.props;
+const layout = cat.layout ?? 'lista';
+const pad = (x: number) => String(x).padStart(2, '0');
+const notas = (nota?: string | string[]) => (Array.isArray(nota) ? nota : nota ? [nota] : []);
+---
+
+<section class:list={['cat', `cat--${layout}`]} id={cat.id} data-cat aria-labelledby={`${cat.id}-t`}>
+  <header class="cat__head">
+    <div class="cat__sticky">
+      <span class="cat__num">{pad(n)}</span>
+      <h2 id={`${cat.id}-t`} class="cat__title" data-reveal>{cat.titulo}</h2>
+      {cat.bajada && <p class="cat__bajada" data-reveal style="--d:80ms">{cat.bajada}</p>}
+      {
+        img && (
+          <figure class:list={['cat__img', { 'cat__img--cutout': img.cutout }]} data-reveal style="--d:140ms">
+            <img src={img.src} alt={img.alt} loading="lazy" decoding="async" data-drift />
+          </figure>
+        )
+      }
+    </div>
+  </header>
+
+  <div class="cat__body">
+    {
+      cat.columnas && (
+        <div class="cat__cols" aria-hidden="true">
+          {cat.columnas.map((c) => (
+            <span>{c}</span>
+          ))}
+        </div>
+      )
+    }
+    {
+      cat.grupos?.map((g) => (
+        <div class="grupo">
+          {g.titulo && (
+            <h3 class="grupo__t">
+              {g.titulo}
+              {g.bajada && <small>{g.bajada}</small>}
+            </h3>
+          )}
+          <ul class="platos">
+            {g.platos.map((p) => {
+              const precios = Array.isArray(p.precio) ? p.precio : [p.precio];
+              const ns = notas(p.nota);
+              const multi = precios.length > 1 && ns.length === precios.length;
+              const search = [p.nombre, p.desc, ...ns, cat.titulo, g.titulo, ...(p.tags ?? [])]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[̀-ͯ]/g, '');
+              return (
+                <li class="plato" data-plato data-search={search}>
+                  <div class="plato__row">
+                    <span class="plato__name">
+                      {p.nombre}
+                      {!multi && ns.map((x) => <span class="plato__nota">{x}</span>)}
+                    </span>
+                    <span class="plato__dots" aria-hidden="true" />
+                    {p.precio !== 0 && (
+                      <span class="plato__precios">
+                        {multi
+                          ? precios.map((x, k) => (
+                              <span class="plato__precio">
+                                <small>{ns[k]}</small>
+                                {clp(x)}
+                              </span>
+                            ))
+                          : cat.columnas
+                            ? cat.columnas.map((col, k) => (
+                                <span class="plato__precio plato__precio--col" aria-label={`${col}: ${precios[k] ? clp(precios[k]) : 'no disponible'}`}>
+                                  {precios[k] ? clp(precios[k]) : '·'}
+                                </span>
+                              ))
+                            : precios.map((x) => <span class="plato__precio">{clp(x)}</span>)}
+                      </span>
+                    )}
+                  </div>
+                  {p.desc && <p class="plato__desc">{p.desc}</p>}
+                  {p.tags && (
+                    <ul class="plato__tags">
+                      {p.tags.map((t) => (
+                        <li>{t}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .cat {
+    display: grid;
+    gap: var(--s-400);
+    padding-block: var(--s-800);
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 140px;
+  }
+  .cat[hidden] {
+    display: none;
+  }
+  .cat__num {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--terracota);
+    font-variant-numeric: tabular-nums;
+  }
+  .cat__title {
+    margin-top: var(--s-100);
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .cat__bajada {
+    margin-top: var(--s-100);
+    color: var(--ink-soft);
+  }
+  .cat__img {
+    margin: var(--s-400) 0 0;
+    border-radius: var(--r-2xl);
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    display: none;
+  }
+  .cat__img img {
+    width: 100%;
+    height: 115%;
+    object-fit: cover;
+    will-change: transform;
+  }
+  .cat__img--cutout {
+    border-radius: 0;
+    overflow: visible;
+    aspect-ratio: auto;
+  }
+  .cat__img--cutout img {
+    height: auto;
+    filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.5));
+  }
+
+  .cat__cols {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--s-200);
+    padding-bottom: var(--s-100);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .cat__cols span {
+    width: 80px;
+    text-align: right;
+  }
+
+  .grupo + .grupo {
+    margin-top: var(--s-500);
+  }
+  .grupo__t {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-75);
+    padding-bottom: var(--s-100);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracota);
+  }
+  .grupo__t small {
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  .platos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .plato {
+    padding-block: var(--s-200);
+    border-bottom: 1px solid var(--line);
+  }
+  .plato[hidden] {
+    display: none;
+  }
+  .plato__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-100);
+  }
+  .plato__name {
+    min-width: 0;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+  }
+  .plato__nota {
+    display: inline-block;
+    margin-left: var(--s-75);
+    padding: 0 var(--s-75);
+    border-radius: var(--r-full);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    box-shadow: inset 0 0 0 1px var(--line);
+    vertical-align: 2px;
+  }
+  .plato__dots {
+    flex: 1;
+    min-width: var(--s-200);
+    border-bottom: 1px dotted rgba(240, 231, 215, 0.25);
+    transform: translateY(-5px);
+  }
+  .plato__precios {
+    flex: none;
+    display: flex;
+    gap: var(--s-200);
+  }
+  @media (max-width: 479px) {
+    .plato__precios:has(small) {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0;
+    }
+    .cat__cols span,
+    .plato__precio--col {
+      width: 64px;
+    }
+  }
+  .plato__precio {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    color: var(--terracota);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .plato__precio small {
+    margin-right: var(--s-50);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+  .plato__precio--col {
+    width: 80px;
+    text-align: right;
+  }
+  .plato__desc {
+    margin-top: var(--s-50);
+    max-width: 56ch;
+    color: var(--ink-soft);
+  }
+  .plato__tags {
+    display: flex;
+    gap: var(--s-75);
+    margin: var(--s-100) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .plato__tags li {
+    padding: 0 var(--s-100);
+    border-radius: var(--r-full);
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    background: rgba(244, 123, 68, 0.14);
+    color: #ffb48f;
+  }
+
+  /* Compacta: solo nombre y precio, en dos columnas en pantallas anchas */
+  .cat--compacta .plato {
+    padding-block: var(--s-100);
+  }
+  .cat--compacta .plato__name {
+    font-weight: 500;
+  }
+  .cat--compacta .plato__desc {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .cat--dos-columnas .platos,
+    .cat--compacta:not(:has(.cat__cols)) .platos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: var(--s-500);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .cat {
+      grid-template-columns: 340px 1fr;
+      gap: var(--s-800);
+      padding-block: var(--s-900);
+    }
+    .cat__sticky {
+      position: sticky;
+      top: 160px;
+    }
+    .cat__title {
+      font-size: 3rem;
+      line-height: 1;
+    }
+    .cat__img {
+      display: block;
+    }
+  }
+</style>

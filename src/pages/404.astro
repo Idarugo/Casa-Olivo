@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Página no encontrada · Casa Olivo">
+  <main id="contenido" class="nf">
+    <img src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" />
+    <h1>Esta mesa no existe</h1>
+    <p>La página que buscas no está disponible. Vuelve al inicio y te llevamos a la casona.</p>
+    <a class="btn btn--primary" href="/">Volver al inicio</a>
+  </main>
+</Base>
+
+<style>
+  .nf {
+    min-height: 100svh;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--s-300);
+    padding: var(--s-600) var(--gutter);
+    text-align: center;
+  }
+  .nf img {
+    width: 180px;
+    height: auto;
+  }
+  h1 {
+    font-size: 3rem;
+    line-height: 1;
+  }
+  p {
+    max-width: 40ch;
+    color: var(--ink-soft);
+  }
+</style>

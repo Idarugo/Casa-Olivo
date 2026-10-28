@@ -1,0 +1,187 @@
+---
+import { horario, links } from '../data/site';
+import Icon from './Icon.astro';
+---
+
+<section class="visita" id="visita" aria-labelledby="visita-title">
+  <div class="visita__bg" aria-hidden="true">
+    <img src="/img/casona-noche.webp" alt="" loading="lazy" decoding="async" data-parallax="0.12" />
+  </div>
+
+  <div class="wrap visita__inner">
+    <div class="visita__head">
+      <span class="eyebrow" data-reveal>Visítanos</span>
+      <h2 id="visita-title" data-reveal style="--d:80ms">
+        Te esperamos con
+        <br />
+        lo mejor de lo nuestro
+      </h2>
+      <p data-reveal style="--d:160ms">En un espacio único, lleno de tradición y calidez, en el corazón de la sexta región.</p>
+      <div class="visita__ctas" data-reveal style="--d:240ms">
+        <a class="btn btn--primary" href={links.reserva}>
+          Reserva tu mesa
+          <Icon name="arrow-right" size={18} />
+        </a>
+        <a class="btn btn--ghost" href={links.whatsapp} target="_blank" rel="noopener">
+          <Icon name="whatsapp-logo" size={20} />
+          Retiro en local
+        </a>
+      </div>
+    </div>
+
+    <div class="visita__cards">
+      <article class="visita__card" data-reveal>
+        <Icon name="map-pin" size={24} />
+        <h3>Dirección</h3>
+        <p>
+          Espacio Santa Julia
+          <br />
+          Av. Julio Silva 597, Olivar
+        </p>
+        <a class="visita__link" href={links.maps} target="_blank" rel="noopener">
+          Cómo llegar
+          <Icon name="arrow-up-right" size={16} />
+        </a>
+      </article>
+
+      <article class="visita__card" data-reveal style="--d:100ms">
+        <Icon name="clock" size={24} />
+        <h3>Horario</h3>
+        <dl>
+          {
+            horario.map((h) => (
+              <div class:list={{ closed: h.horas === 'Cerrado' }}>
+                <dt>{h.dias}</dt>
+                <dd>{h.horas}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .visita {
+    position: relative;
+    padding-block: var(--s-900);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .visita__bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .visita__bg img {
+    width: 100%;
+    height: 120%;
+    object-fit: cover;
+    object-position: 50% 60%;
+    will-change: transform;
+  }
+  .visita__bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(19, 18, 9, 0.72);
+  }
+  .visita__inner {
+    display: grid;
+    gap: var(--s-700);
+  }
+  .visita__head > * + * {
+    margin-top: var(--s-300);
+  }
+  .visita__head h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    max-width: 680px;
+  }
+  .visita__head p {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+    max-width: 44ch;
+  }
+  .visita__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-100);
+  }
+  .visita__cards {
+    display: grid;
+    gap: var(--s-200);
+  }
+  .visita__card {
+    padding: var(--s-400);
+    border-radius: var(--r-3xl);
+    background: rgba(19, 18, 9, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .visita__card > .icon {
+    color: var(--terracota);
+  }
+  .visita__card h3 {
+    margin-top: var(--s-200);
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  .visita__card p {
+    margin-top: var(--s-75);
+    color: var(--ink-soft);
+  }
+  .visita__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-50);
+    margin-top: var(--s-200);
+    font-weight: 600;
+    color: var(--terracota);
+    text-decoration: none;
+  }
+  .visita__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  dl {
+    margin: var(--s-200) 0 0;
+    display: grid;
+  }
+  dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-200);
+    padding-block: var(--s-100);
+    border-top: 1px solid var(--line);
+  }
+  dt {
+    color: var(--ink-soft);
+  }
+  dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  dl .closed dd {
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  @media (min-width: 900px) {
+    .visita {
+      padding-block: 160px;
+    }
+    .visita__inner {
+      grid-template-columns: 1.1fr 1fr;
+      align-items: end;
+    }
+    .visita__head h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+</style>

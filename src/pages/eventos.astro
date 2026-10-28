@@ -1,0 +1,540 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import ShowCard from '../components/ShowCard.astro';
+import { shows, karaoke, partes, termina } from '../data/eventos';
+import { links } from '../data/site';
+
+const proximos = shows.filter((s) => termina(s.fecha) > Date.now());
+const pasados = shows.filter((s) => termina(s.fecha) <= Date.now());
+const siguiente = proximos[0];
+const final = karaoke.jornadas[karaoke.jornadas.length - 1];
+const fFinal = partes(final.fecha);
+---
+
+<Base
+  title="Eventos y shows · Casa Olivo"
+  description="Shows en vivo, concurso de karaoke y celebraciones en Casa Olivo, Olivar. Revisa la agenda y compra tus entradas."
+>
+  <Nav current="eventos" />
+
+  <main id="contenido">
+    <section class="eh" data-ev-hero aria-labelledby="ev-title">
+      <div class="eh__sticky">
+        <div class="eh__media">
+          <img
+            src="/img/letrero-noche.webp"
+            srcset="/img/letrero-noche-sm.webp 900w, /img/letrero-noche.webp 1600w"
+            sizes="100vw"
+            alt=""
+            fetchpriority="high"
+            data-eh-img
+          />
+        </div>
+        <div class="eh__shade" aria-hidden="true"></div>
+        <div class="wrap eh__copy" data-eh-copy>
+          <span class="eyebrow">Eventos</span>
+          <h1 id="ev-title" class="eh__title">
+            Noches en
+            <br />
+            la casona
+          </h1>
+          <p class="eh__sub">Shows en vivo, karaoke y celebraciones con sabor local, a minutos de Rancagua.</p>
+          {
+            siguiente && (
+              <a class="eh__next" href="#shows" data-ends={termina(siguiente.fecha)}>
+                <span class="eh__pulse" aria-hidden="true" />
+                <span>
+                  Próximo show: <strong>{siguiente.artista}</strong>, {partes(siguiente.fecha).semana} {partes(siguiente.fecha).dia} de{' '}
+                  {partes(siguiente.fecha).mes}
+                </span>
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="shows" id="shows" aria-labelledby="shows-t">
+      <div class="wrap">
+        <div class="shows__head">
+          <span class="eyebrow" data-reveal>Próximos shows</span>
+          <h2 id="shows-t" data-reveal style="--d:80ms">En vivo en Casa Olivo</h2>
+          <p data-reveal style="--d:160ms">Cena, buena música y la casona iluminada. Compra tus entradas en Ticketplus.</p>
+        </div>
+
+        <div class="stack" data-agenda data-stack>
+          {
+            proximos.map((s, i) => (
+              <div class="stack__item" style={`--i:${i}`}>
+                <ShowCard show={s} i={i} />
+              </div>
+            ))
+          }
+          <div class="shows__empty" data-agenda-empty hidden={proximos.length > 0}>
+            <Icon name="music-notes" size={32} />
+            <h3>Pronto anunciamos nuevos shows</h3>
+            <p>Síguenos en Instagram para enterarte primero de la próxima fecha.</p>
+            <a class="btn btn--ghost" href={links.instagram} target="_blank" rel="noopener">
+              <Icon name="instagram-logo" size={20} />
+              @casaolivorestaurante
+            </a>
+          </div>
+        </div>
+
+        <p class="shows__note">
+          <Icon name="clock" size={18} />
+          En días de espectáculo el happy hour no aplica.
+        </p>
+      </div>
+    </section>
+
+    <section class="kt" aria-labelledby="kt-t">
+      <div class="wrap kt__inner">
+        <div class="kt__mic" aria-hidden="true" data-reveal><Icon name="microphone-stage" size={64} /></div>
+        <div class="kt__text">
+          <span class="eyebrow" data-reveal>{karaoke.edicion}</span>
+          <h2 id="kt-t" data-reveal style="--d:80ms">Concurso de karaoke</h2>
+          <p data-reveal style="--d:160ms">
+            {karaoke.lema}. Tres noches clasificatorias y una gran final el {fFinal.semana} {fFinal.dia} de {fFinal.mes}, con
+            $200.000 en efectivo para quien gane.
+          </p>
+          <div class="kt__ctas" data-reveal style="--d:240ms">
+            <a class="btn btn--primary" href="/karaoke#inscripcion">Inscríbete gratis</a>
+            <a class="btn btn--ghost" href="/karaoke#bases">Ver las bases</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {
+      pasados.length > 0 && (
+        <section class="past" aria-labelledby="past-t">
+          <div class="wrap">
+            <h2 id="past-t" class="past__t" data-reveal>
+              Ya pasaron por la casona
+            </h2>
+            <ul class="past__list">
+              {pasados.map((s, i) => (
+                <li data-reveal style={`--d:${i * 80}ms`}>
+                  <img src={s.poster} alt={`Afiche de ${s.artista}`} loading="lazy" width="800" height="800" />
+                  <span>
+                    {s.artista}
+                    <small>
+                      {partes(s.fecha).dia} de {partes(s.fecha).mes}
+                    </small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )
+    }
+
+    <section class="priv" aria-labelledby="priv-t">
+      <div class="priv__media">
+        <img src="/img/casona-aerea.webp" srcset="/img/casona-aerea-sm.webp 900w, /img/casona-aerea.webp 1600w" sizes="100vw" alt="Vista aérea de la casona de Casa Olivo entre palmeras y jardines" loading="lazy" data-parallax="0.12" />
+      </div>
+      <div class="wrap priv__inner">
+        <span class="eyebrow" data-reveal>Tu propio evento</span>
+        <h2 id="priv-t" data-reveal style="--d:80ms">
+          ¿Celebras algo?
+          <br />
+          Hagámoslo en la casona
+        </h2>
+        <p data-reveal style="--d:160ms">Menús especiales para grupos y ocasiones, y cenas temáticas con productos de estación.</p>
+        <div data-reveal style="--d:240ms">
+          <a class="btn btn--primary" href={links.whatsapp} target="_blank" rel="noopener">
+            <Icon name="whatsapp-logo" size={20} />
+            Cotiza por WhatsApp
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<script>
+  import '../scripts/agenda';
+  import '../scripts/scrollfx';
+
+  const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hero = document.querySelector<HTMLElement>('[data-ev-hero]')!;
+  const img = hero.querySelector<HTMLElement>('[data-eh-img]')!;
+  const copy = hero.querySelector<HTMLElement>('[data-eh-copy]')!;
+  const items = [...document.querySelectorAll<HTMLElement>('.stack__item')];
+
+  let ticking = false;
+  function frame() {
+    ticking = false;
+    const vh = window.innerHeight;
+    const p = clamp(-hero.getBoundingClientRect().top / (hero.offsetHeight - vh));
+    if (!reduce) {
+      // La cámara se acerca al letrero iluminado
+      img.style.transform = `scale(${(1.05 + p * 0.6).toFixed(4)})`;
+      copy.style.transform = `translate3d(0, ${(-p * 60).toFixed(1)}px, 0)`;
+      // Tarjetas apiladas: la de atrás se encoge cuando la siguiente la cubre
+      const stacked = getComputedStyle(items[0] ?? document.body).position === 'sticky';
+      if (stacked) items.forEach((it, i) => {
+        const next = items[i + 1];
+        const card = it.firstElementChild as HTMLElement;
+        if (!next) return (card.style.transform = '');
+        const k = clamp(1 - (next.getBoundingClientRect().top - it.getBoundingClientRect().top) / it.offsetHeight);
+        card.style.transform = `scale(${(1 - k * 0.06).toFixed(4)})`;
+        card.style.filter = `brightness(${(1 - k * 0.45).toFixed(3)})`;
+      });
+    }
+    copy.style.opacity = String(1 - clamp((p - 0.4) / 0.5));
+  }
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(frame);
+      }
+    },
+    { passive: true },
+  );
+  frame();
+</script>
+
+<style>
+  .eh {
+    position: relative;
+    height: 160vh;
+  }
+  .eh__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+  }
+  .eh__media,
+  .eh__shade {
+    position: absolute;
+    inset: 0;
+  }
+  .eh__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 58% 40%;
+    transform-origin: 58% 40%;
+    will-change: transform;
+  }
+  .eh__shade {
+    background:
+      linear-gradient(0deg, rgba(19, 18, 9, 0.95) 0%, rgba(19, 18, 9, 0.55) 45%, rgba(19, 18, 9, 0.15) 100%),
+      linear-gradient(90deg, rgba(19, 18, 9, 0.7) 0%, transparent 60%);
+  }
+  .eh__copy {
+    position: absolute;
+    inset: auto 0 var(--s-800);
+    will-change: transform, opacity;
+  }
+  .eh__copy > * + * {
+    margin-top: var(--s-300);
+  }
+  .eh__title {
+    max-width: 680px;
+    font-size: 3rem;
+    line-height: 1;
+    background: linear-gradient(90deg, #ffffff 0%, #c9bfae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-bottom: 0.08em;
+  }
+  .eh__sub {
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .eh__next {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    padding: var(--s-75) var(--s-200);
+    border-radius: var(--r-full);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    background: rgba(19, 18, 9, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.45);
+    text-decoration: none;
+    transition: background-color 300ms var(--ease);
+  }
+  .eh__next:hover {
+    background: rgba(244, 123, 68, 0.18);
+  }
+  .eh__pulse {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-full);
+    background: var(--terracota);
+    animation: pulse 1.8s var(--ease) infinite;
+  }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(244, 123, 68, 0.6);
+    }
+    100% {
+      box-shadow: 0 0 0 10px rgba(244, 123, 68, 0);
+    }
+  }
+  @media (min-width: 768px) {
+    .eh__title {
+      font-size: 6rem;
+    }
+  }
+
+  .shows {
+    padding-block: var(--s-800) var(--s-900);
+  }
+  .shows__head {
+    margin-bottom: var(--s-600);
+  }
+  .shows__head > * + * {
+    margin-top: var(--s-200);
+  }
+  .shows__head h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .shows__head p {
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .stack {
+    display: grid;
+    gap: var(--s-300);
+  }
+  /* Las tarjetas se apilan solo donde caben completas en pantalla */
+  @media (min-width: 768px) and (min-height: 700px) {
+    .stack__item {
+      position: sticky;
+      top: calc(96px + var(--i) * var(--s-200));
+    }
+  }
+  .stack__item > :global(*) {
+    transform-origin: 50% 0;
+    will-change: transform, filter;
+  }
+  .shows__empty {
+    display: grid;
+    justify-items: start;
+    gap: var(--s-200);
+    padding: var(--s-600) var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .shows__empty[hidden] {
+    display: none;
+  }
+  .shows__empty > .icon {
+    color: var(--terracota);
+  }
+  .shows__empty h3 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .shows__empty p {
+    color: var(--ink-soft);
+  }
+  .shows__note {
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+    margin-top: var(--s-400);
+    color: var(--ink-soft);
+  }
+  @media (min-width: 768px) {
+    .shows {
+      padding-block: var(--s-900) 160px;
+    }
+    .shows__head h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .stack {
+      gap: var(--s-700);
+    }
+  }
+
+  /* Karaoke */
+  .kt {
+    padding-block: var(--s-900);
+    background: var(--terracota);
+    color: var(--terracota-ink);
+  }
+  .kt__inner {
+    display: grid;
+    gap: var(--s-400);
+    align-items: center;
+  }
+  .kt__mic {
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 120px;
+    border-radius: var(--r-full);
+    background: var(--terracota-ink);
+    color: var(--terracota);
+  }
+  .kt__text > * + * {
+    margin-top: var(--s-200);
+  }
+  .kt .eyebrow {
+    color: var(--terracota-ink);
+    opacity: 0.7;
+  }
+  .kt h2 {
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .kt p {
+    max-width: 52ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .kt__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-100);
+    padding-top: var(--s-100);
+  }
+  .kt .btn--primary {
+    background: var(--terracota-ink);
+    color: var(--ink);
+  }
+  .kt .btn--primary:hover {
+    background: #2a1a10;
+  }
+  .kt .btn--ghost {
+    color: var(--terracota-ink);
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(26, 15, 8, 0.4);
+    backdrop-filter: none;
+  }
+  .kt .btn--ghost:hover {
+    background: rgba(26, 15, 8, 0.08);
+  }
+  @media (min-width: 768px) {
+    .kt__inner {
+      grid-template-columns: auto 1fr;
+      gap: var(--s-700);
+    }
+    .kt__mic {
+      width: 200px;
+      height: 200px;
+    }
+    .kt h2 {
+      font-size: 6rem;
+    }
+  }
+
+  /* Pasados */
+  .past {
+    padding-block: var(--s-800);
+  }
+  .past__t {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .past__list {
+    display: flex;
+    gap: var(--s-300);
+    margin: var(--s-300) 0 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+  }
+  .past__list li {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+  }
+  .past__list img {
+    width: 96px;
+    height: 96px;
+    border-radius: var(--r-xl);
+    object-fit: cover;
+    filter: grayscale(1) brightness(0.8);
+  }
+  .past__list span {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+  }
+  .past__list small {
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  /* Evento privado */
+  .priv {
+    position: relative;
+    padding-block: var(--s-900);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .priv__media {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .priv__media img {
+    width: 100%;
+    height: 120%;
+    object-fit: cover;
+  }
+  .priv__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(19, 18, 9, 0.7);
+  }
+  .priv__inner > * + * {
+    margin-top: var(--s-300);
+  }
+  .priv h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .priv p {
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 768px) {
+    .priv {
+      padding-block: 160px;
+    }
+    .priv h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eh__pulse {
+      animation: none;
+    }
+  }
+</style>

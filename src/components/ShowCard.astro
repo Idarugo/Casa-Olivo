@@ -1,0 +1,142 @@
+---
+import type { Show } from '../data/eventos';
+import { partes, termina } from '../data/eventos';
+import { clp } from '../data/carta';
+import Icon from './Icon.astro';
+
+type Props = { show: Show; i?: number; compact?: boolean };
+const { show, i = 0, compact = false } = Astro.props;
+const f = partes(show.fecha);
+---
+
+<article class:list={['show', { 'show--compact': compact }]} data-ends={termina(show.fecha)} data-show style={`--i:${i}`}>
+  <div class="show__poster">
+    <img src={show.poster} alt={`Afiche de ${show.artista} en vivo en Casa Olivo`} width="800" height="800" loading="lazy" decoding="async" />
+  </div>
+  <div class="show__info">
+    <div class="show__date" aria-label={`${f.semana} ${f.dia} de ${f.mes}, ${f.hora} horas`}>
+      <span class="show__day">{f.dia}</span>
+      <span class="show__month">
+        {f.mes}
+        <small>{f.semana} · {f.hora} hrs</small>
+      </span>
+    </div>
+    <h3 class="show__artista">{show.artista}</h3>
+    {show.subtitulo && <p class="show__sub">{show.subtitulo}</p>}
+    <div class="show__buy">
+      <a class="btn btn--primary" href={show.entradas} target="_blank" rel="noopener">
+        <Icon name="ticket" size={20} />
+        Comprar entradas
+      </a>
+      {show.desde && <span class="show__price">Desde {clp(show.desde)}</span>}
+    </div>
+  </div>
+</article>
+
+<style>
+  .show {
+    display: grid;
+    gap: var(--s-300);
+    padding: var(--s-200);
+    border-radius: var(--r-3xl);
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 30px 60px rgba(0, 0, 0, 0.4);
+  }
+  .show__poster {
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    aspect-ratio: 1;
+  }
+  .show__poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 500ms var(--ease);
+  }
+  .show:hover .show__poster img {
+    transform: scale(1.03);
+  }
+  .show__info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-200);
+    padding: 0 var(--s-100) var(--s-100);
+  }
+  .show__date {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+  }
+  .show__day {
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--terracota);
+    font-variant-numeric: tabular-nums;
+  }
+  .show__month {
+    display: flex;
+    flex-direction: column;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .show__month small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+  .show__artista {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .show__sub {
+    color: var(--ink-soft);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .show__buy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-200);
+    margin-top: auto;
+    padding-top: var(--s-200);
+  }
+  .show__price {
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+
+  @media (min-width: 768px) {
+    .show:not(.show--compact) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--s-500);
+      padding: var(--s-300);
+    }
+    .show:not(.show--compact) .show__info {
+      padding: var(--s-300) var(--s-300) var(--s-300) 0;
+    }
+    .show:not(.show--compact) .show__day {
+      font-size: 8rem;
+    }
+    .show:not(.show--compact) .show__artista {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+
+  .show--compact .show__day {
+    font-size: 3rem;
+  }
+  .show--compact .show__artista {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+</style>

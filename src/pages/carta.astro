@@ -1,0 +1,593 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import CartaCategoria from '../components/CartaCategoria.astro';
+import { cocina, bar, happyHour, clp } from '../data/carta';
+import { links } from '../data/site';
+
+const imgs: Record<string, { src: string; alt: string; cutout?: boolean }> = {
+  entrantes: { src: '/img/ceviche-sm.webp', alt: 'Pocillos de greda con ceviche fresco' },
+  autor: { src: '/img/salon-sm.webp', alt: 'Salón de Casa Olivo con mesas de madera' },
+  tradiciones: { src: '/img/pastel.webp', alt: 'Pastel de choclo gratinado en paila de greda', cutout: true },
+  tablas: { src: '/img/mesa-sm.webp', alt: 'Mesa larga montada junto a la ventana' },
+  aperitivos: { src: '/img/terraza-2-sm.webp', alt: 'Terraza con arcos y olivos' },
+};
+const todas = [...cocina.categorias, { id: 'bar', titulo: 'Happy hour' }, ...bar.categorias];
+---
+
+<Base
+  title="La carta · Casa Olivo"
+  description="Carta de Casa Olivo: entrantes para compartir, tablas, platos de autor, tradiciones chilenas, menú ejecutivo y el Oli bar con happy hour 2x de miércoles a sábado."
+>
+  <Nav current="carta" />
+
+  <main id="contenido">
+    <!-- Portada: la cámara entra al salón mientras el título se abre -->
+    <section class="ch" data-carta-hero aria-labelledby="carta-title">
+      <div class="ch__sticky">
+        <div class="ch__media">
+          <img src="/img/salon.webp" srcset="/img/salon-sm.webp 900w, /img/salon.webp 1536w" sizes="100vw" alt="" fetchpriority="high" data-ch-img />
+        </div>
+        <div class="ch__shade" data-ch-shade aria-hidden="true"></div>
+        <div class="wrap ch__copy" data-ch-copy>
+          <span class="eyebrow">Casa Olivo · Olivar</span>
+          <h1 id="carta-title" class="ch__title">
+            <span data-ch-l>La</span>
+            <span data-ch-r>carta</span>
+          </h1>
+          <p class="ch__sub">Cocina chilena de casa, tablas para compartir y un bar con carácter.</p>
+          <div class="ch__switch">
+            <a class="btn btn--primary" href="#cocina">Cocina</a>
+            <a class="btn btn--ghost" href="#bar">Oli bar</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barra de categorías + búsqueda -->
+    <div class="cbar" data-cbar>
+      <div class="cbar__inner">
+        <label class="cbar__search">
+          <span class="sr">Buscar en la carta</span>
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"
+            ><path
+              d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"
+            ></path></svg
+          >
+          <input type="search" placeholder="Busca un plato o trago" autocomplete="off" data-search />
+        </label>
+        <nav class="cbar__chips" aria-label="Categorías" data-chips>
+          {
+            todas.map((c) => (
+              <a href={`#${c.id}`} data-chip={c.id}>
+                {c.titulo}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+      <div class="cbar__progress" aria-hidden="true"><span data-cbar-progress></span></div>
+    </div>
+
+    <div class="wrap" data-carta>
+      <p class="empty" data-empty hidden>
+        No encontramos <strong data-empty-q></strong> en la carta. Prueba con otra palabra o
+        <button type="button" data-clear>borra la búsqueda</button>.
+      </p>
+
+      <!-- COCINA -->
+      <div class="sec" id="cocina" data-sec>
+        <div class="sec__head">
+          <h2 class="sec__title">Cocina</h2>
+          <p>Ingredientes frescos, preparaciones hechas al momento y sabores que respetan nuestra identidad.</p>
+        </div>
+
+        <aside class="ejec" data-reveal data-plato data-search="menu ejecutivo almuerzo entrada fondo postre cafe infusion">
+          <div>
+            <span class="eyebrow">Menú ejecutivo</span>
+            <p class="ejec__price">$9.900</p>
+          </div>
+          <div class="ejec__info">
+            <p class="ejec__tiempos">Entrada · Fondo · Postre · Infusión o café</p>
+            <p class="ejec__when">
+              <Icon name="clock" size={18} />
+              Miércoles a viernes, 12:30 a 17:00
+            </p>
+            <p class="ejec__note">Consulta por las opciones disponibles cada día.</p>
+          </div>
+        </aside>
+
+        {cocina.categorias.map((c, i) => <CartaCategoria cat={c} n={i + 1} img={imgs[c.id]} />)}
+      </div>
+
+      <!-- HAPPY HOUR -->
+      <section class="hh" id="bar" data-sec data-cat aria-labelledby="hh-t">
+        <img class="hh__luces" src="/img/luces.webp" alt="" aria-hidden="true" loading="lazy" />
+        <div class="hh__head">
+          <span class="eyebrow">Oli bar</span>
+          <h2 id="hh-t" class="hh__title">
+            <span class="hh__x" data-hh-x>2x</span>
+            <span>
+              Happy hour
+              <small>{happyHour.dias}, {happyHour.horas}</small>
+            </span>
+          </h2>
+          <p>En tragos seleccionados. {happyHour.nota}</p>
+        </div>
+        <ul class="hh__list">
+          {
+            happyHour.tragos.map((t) => (
+              <li data-plato data-search={`happy hour 2x ${t.nombre.toLowerCase()}`}>
+                <span>{t.nombre}</span>
+                <span class="plato__dots" aria-hidden="true" />
+                <strong>{clp(t.precio)}</strong>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="hh__foot">Precio por dos tragos.</p>
+      </section>
+
+      <!-- BAR -->
+      <div class="sec" data-sec>
+        {bar.categorias.map((c, i) => <CartaCategoria cat={c} n={cocina.categorias.length + i + 1} img={imgs[c.id]} />)}
+      </div>
+    </div>
+
+    <!-- Cierre -->
+    <section class="cend">
+      <div class="wrap cend__inner">
+        <h2 data-reveal>¿Ya sabes qué vas a pedir?</h2>
+        <p data-reveal style="--d:80ms">Reserva tu mesa en la casona y te esperamos con lo mejor de lo nuestro.</p>
+        <div class="cend__ctas" data-reveal style="--d:160ms">
+          <a class="btn btn--primary" href={links.reserva}>
+            <Icon name="calendar-check" size={20} />
+            Reserva tu mesa
+          </a>
+          <a class="btn btn--ghost" href={links.whatsapp} target="_blank" rel="noopener">
+            <Icon name="whatsapp-logo" size={20} />
+            Pide para retiro
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<script>
+  import '../scripts/scrollfx';
+  import '../scripts/carta';
+</script>
+
+<style>
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Portada */
+  .ch {
+    position: relative;
+    height: 170vh;
+  }
+  .ch__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+  }
+  .ch__media,
+  .ch__shade {
+    position: absolute;
+    inset: 0;
+  }
+  .ch__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 68% 42%;
+    transform-origin: 68% 42%;
+    will-change: transform;
+  }
+  .ch__shade {
+    background:
+      linear-gradient(0deg, rgba(19, 18, 9, 0.95) 0%, rgba(19, 18, 9, 0.55) 45%, rgba(19, 18, 9, 0.35) 100%),
+      radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+  }
+  .ch__copy {
+    position: absolute;
+    inset: auto 0 var(--s-800);
+    will-change: transform, opacity;
+  }
+  .ch__copy > * + * {
+    margin-top: var(--s-300);
+  }
+  .ch__title {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.25em;
+    font-size: 4.5rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    background: linear-gradient(90deg, #ffffff 0%, #c9bfae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ch__title span {
+    display: inline-block;
+    will-change: transform;
+  }
+  .ch__sub {
+    max-width: 40ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .ch__switch {
+    display: flex;
+    gap: var(--s-100);
+  }
+  @media (min-width: 768px) {
+    .ch__title {
+      font-size: 8rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    .ch__title {
+      font-size: 9rem;
+    }
+  }
+
+  /* Barra de categorías */
+  .cbar {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    padding-top: 88px;
+    background: rgba(19, 18, 9, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--line);
+  }
+  .cbar__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-100);
+    max-width: var(--max);
+    margin-inline: auto;
+    padding: 0 var(--gutter) var(--s-100);
+  }
+  .cbar__search {
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+    padding: 0 var(--s-200);
+    min-height: 44px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--ink-soft);
+    transition: box-shadow 300ms var(--ease);
+  }
+  .cbar__search:focus-within {
+    box-shadow: inset 0 0 0 1.5px var(--terracota);
+  }
+  .cbar__search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 1rem;
+  }
+  .cbar__search input::placeholder {
+    color: var(--ink-soft);
+  }
+  .cbar__chips {
+    display: flex;
+    gap: var(--s-50);
+    overflow-x: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+  }
+  .cbar__chips::-webkit-scrollbar {
+    display: none;
+  }
+  .cbar__chips a {
+    flex: none;
+    padding: var(--s-75) var(--s-100);
+    border-radius: var(--r-full);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color 300ms var(--ease),
+      background-color 300ms var(--ease);
+  }
+  .cbar__chips a:hover {
+    color: var(--ink);
+  }
+  .cbar__chips a[aria-current='true'] {
+    background: var(--terracota);
+    color: var(--terracota-ink);
+  }
+  .cbar__chips a[hidden] {
+    display: none;
+  }
+  .cbar__progress {
+    height: 2px;
+  }
+  .cbar__progress span {
+    display: block;
+    height: 100%;
+    background: var(--terracota);
+    transform-origin: 0 50%;
+    transform: scaleX(0);
+  }
+  @media (min-width: 900px) {
+    .cbar__inner {
+      flex-direction: row;
+      align-items: center;
+    }
+    .cbar__search {
+      width: 280px;
+      flex: none;
+    }
+    .cbar__chips {
+      flex: 1;
+    }
+  }
+
+  .empty {
+    padding: var(--s-800) 0;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .empty strong {
+    color: var(--ink);
+  }
+  .empty button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--terracota);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+
+  .sec {
+    scroll-margin-top: 140px;
+  }
+  .sec[hidden] {
+    display: none;
+  }
+  .sec__head {
+    padding-block: var(--s-800) var(--s-500);
+  }
+  .sec__title {
+    font-size: 4.5rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .sec__head p {
+    margin-top: var(--s-200);
+    max-width: 48ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 768px) {
+    .sec__title {
+      font-size: 8rem;
+    }
+  }
+
+  /* Menú ejecutivo */
+  .ejec {
+    display: grid;
+    gap: var(--s-300);
+    margin-bottom: var(--s-700);
+    padding: var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--cafe);
+  }
+  .ejec[hidden] {
+    display: none;
+  }
+  .ejec .eyebrow {
+    color: #ffb48f;
+  }
+  .ejec__price {
+    margin-top: var(--s-75);
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+  .ejec__info > * + * {
+    margin-top: var(--s-75);
+  }
+  .ejec__tiempos {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+  }
+  .ejec__when {
+    display: flex;
+    align-items: center;
+    gap: var(--s-75);
+  }
+  .ejec__note {
+    color: rgba(240, 231, 215, 0.75);
+  }
+  @media (min-width: 768px) {
+    .ejec {
+      grid-template-columns: auto 1fr;
+      align-items: end;
+      gap: var(--s-700);
+      padding: var(--s-600);
+    }
+    .ejec__price {
+      font-size: 6rem;
+    }
+  }
+
+  /* Happy hour */
+  .hh {
+    position: relative;
+    margin-block: var(--s-800);
+    padding: var(--s-600) var(--s-300) var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--bg-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    overflow: hidden;
+    isolation: isolate;
+    scroll-margin-top: 140px;
+  }
+  .hh[hidden] {
+    display: none;
+  }
+  .hh__luces {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -1;
+    width: 100%;
+    height: auto;
+    opacity: 0.7;
+  }
+  .hh__head > * + * {
+    margin-top: var(--s-200);
+  }
+  .hh__title {
+    display: flex;
+    align-items: center;
+    gap: var(--s-300);
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .hh__title small {
+    display: block;
+    margin-top: var(--s-75);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+  }
+  .hh__x {
+    font-size: 6rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.06em;
+    color: var(--terracota);
+    will-change: transform;
+  }
+  .hh__head p {
+    color: var(--ink-soft);
+  }
+  .hh__list {
+    margin: var(--s-500) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .hh__list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-100);
+    padding-block: var(--s-100);
+    border-bottom: 1px solid var(--line);
+  }
+  .hh__list li[hidden] {
+    display: none;
+  }
+  .hh__list strong {
+    color: var(--terracota);
+    font-variant-numeric: tabular-nums;
+  }
+  .hh .plato__dots {
+    flex: 1;
+    min-width: var(--s-200);
+    border-bottom: 1px dotted rgba(240, 231, 215, 0.25);
+    transform: translateY(-5px);
+  }
+  .hh__foot {
+    margin-top: var(--s-200);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 768px) {
+    .hh {
+      padding: var(--s-800) var(--s-700) var(--s-600);
+    }
+    .hh__title {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .hh__x {
+      font-size: 9rem;
+    }
+    .hh__list {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      column-gap: var(--s-500);
+    }
+  }
+  @media (max-width: 1023px) and (min-width: 768px) {
+    .hh__list {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Cierre */
+  .cend {
+    padding-block: var(--s-900);
+    background: var(--cafe);
+  }
+  .cend__inner > * + * {
+    margin-top: var(--s-300);
+  }
+  .cend h2 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    max-width: 680px;
+  }
+  .cend p {
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: rgba(240, 231, 215, 0.82);
+  }
+  .cend__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-100);
+  }
+  @media (min-width: 768px) {
+    .cend {
+      padding-block: 160px;
+    }
+    .cend h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+  }
+</style>

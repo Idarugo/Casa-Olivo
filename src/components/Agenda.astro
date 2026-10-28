@@ -1,0 +1,130 @@
+---
+import { shows, karaoke, termina, partes } from '../data/eventos';
+import ShowCard from './ShowCard.astro';
+import Icon from './Icon.astro';
+
+const proximos = shows.filter((s) => termina(s.fecha) > Date.now()).slice(0, 2);
+const final = partes(karaoke.jornadas.at(-1)!.fecha);
+---
+
+<section class="ag" id="agenda" aria-labelledby="ag-t">
+  <div class="wrap">
+    <div class="ag__head">
+      <div>
+        <span class="eyebrow" data-reveal>Agenda</span>
+        <h2 id="ag-t" data-reveal style="--d:80ms">Próximos shows</h2>
+      </div>
+      <a class="btn btn--ghost" href="/eventos" data-reveal style="--d:160ms">
+        Ver todos los eventos
+        <Icon name="arrow-right" size={18} />
+      </a>
+    </div>
+
+    <div class="ag__grid" data-agenda>
+      {
+        proximos.map((s, i) => (
+          <div data-reveal style={`--d:${i * 100}ms`} data-ends={termina(s.fecha)}>
+            <ShowCard show={s} compact />
+          </div>
+        ))
+      }
+      <a class="ag__karaoke" href="/karaoke" data-reveal style="--d:200ms">
+        <Icon name="microphone-stage" size={40} />
+        <span class="ag__k-ed">{karaoke.edicion}</span>
+        <strong>Concurso de karaoke</strong>
+        <span>Inscripción gratuita. Gran final el {final.semana} {final.dia} de {final.mes}, con $200.000 para el primer lugar.</span>
+        <span class="ag__k-go">
+          Inscríbete
+          <Icon name="arrow-right" size={18} />
+        </span>
+      </a>
+      <p class="ag__empty" data-agenda-empty hidden={proximos.length > 0}>
+        Pronto anunciaremos nuevos shows. Síguenos en Instagram para enterarte primero.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .ag {
+    padding-block: var(--s-900);
+    background: var(--bg);
+  }
+  .ag__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s-300);
+    margin-bottom: var(--s-600);
+  }
+  .ag__head h2 {
+    margin-top: var(--s-200);
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .ag__grid {
+    display: grid;
+    gap: var(--s-200);
+  }
+  .ag__grid > div {
+    display: grid;
+  }
+  .ag__karaoke {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-100);
+    padding: var(--s-400);
+    border-radius: var(--r-3xl);
+    background: var(--terracota);
+    color: var(--terracota-ink);
+    text-decoration: none;
+    transition: transform 500ms var(--ease);
+  }
+  .ag__karaoke:hover {
+    transform: translateY(-4px);
+  }
+  .ag__karaoke:active {
+    transform: scale(0.98);
+  }
+  .ag__k-ed {
+    margin-top: auto;
+    padding-top: var(--s-400);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .ag__karaoke strong {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    letter-spacing: -0.02em;
+  }
+  .ag__k-go {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    margin-top: var(--s-200);
+    font-weight: 600;
+  }
+  .ag__empty {
+    color: var(--ink-soft);
+  }
+  .ag__empty[hidden] {
+    display: none;
+  }
+  @media (min-width: 900px) {
+    .ag {
+      padding-block: 160px;
+    }
+    .ag__head h2 {
+      font-size: 3.75rem;
+      line-height: 1;
+    }
+    .ag__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

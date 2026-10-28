@@ -1,0 +1,658 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import { horario, links } from '../data/site';
+
+// Widget de Tableo teñido con la paleta del sitio
+const theme = new URLSearchParams({
+  bgColor: '#272219',
+  textColor: '#f0e7d7',
+  googleFont: 'Manrope',
+  fontSize: '16',
+  cornerStyle: 'rounded',
+  textAlignment: 'left',
+  formControlBgColor: '#131209',
+  formControlColor: '#f0e7d7',
+  formControlBorderColor: '#f47b44',
+  formControlBorderShadow: '0',
+  formControlBorderWidth: '1',
+  formControlBorderOpacity: '0.4',
+  buttonBgColor: '#f47b44',
+  buttonTextColor: '#1a0f08',
+  hideTitle: '1',
+  language: 'es',
+});
+const widget = `https://app.tableo.com/widget/casa-olivo-restaurante-chile?${theme}`;
+
+const pasos = [
+  { n: '01', t: 'Elige día y hora', d: 'Indica cuántos adultos y niños vienen y revisa los horarios disponibles.' },
+  { n: '02', t: 'Deja tus datos', d: 'Nombre y contacto para confirmar tu mesa.' },
+  { n: '03', t: 'Te esperamos', d: 'Llega a Espacio Santa Julia, Av. Julio Silva 597, Olivar.' },
+];
+
+const faqs = [
+  {
+    q: '¿Qué días abren?',
+    a: 'De miércoles a sábado de 12:30 a 23:00, y domingos y festivos de 12:30 a 18:00. Lunes y martes estamos cerrados.',
+  },
+  {
+    q: '¿Puedo reservar para el menú ejecutivo?',
+    a: 'Sí. El menú ejecutivo cuesta $9.900 e incluye entrada, fondo, postre e infusión o café. Se sirve de miércoles a viernes, de 12:30 a 17:00.',
+  },
+  {
+    q: '¿Organizan celebraciones o grupos grandes?',
+    a: 'Sí. Preparamos menús especiales para grupos y ocasiones, y cenas temáticas con productos de estación. Escríbenos por WhatsApp para cotizar.',
+  },
+  {
+    q: '¿Puedo pedir para llevar?',
+    a: 'Sí, tenemos retiro en local. Haz tu pedido por WhatsApp al +56 9 5878 5050.',
+  },
+  {
+    q: '¿Cuándo es el happy hour?',
+    a: 'De miércoles a sábado, de 18:00 a 21:00, con 2x en tragos seleccionados. No aplica en días de espectáculos.',
+  },
+  {
+    q: '¿Dónde están?',
+    a: 'En el interior de Espacio Santa Julia, Av. Julio Silva 597, Olivar, a pocos minutos de Rancagua.',
+  },
+];
+---
+
+<Base
+  title="Reserva tu mesa · Casa Olivo"
+  description="Reserva tu mesa en Casa Olivo, cocina chilena en una casona de más de cien años en Olivar. Miércoles a domingo, menú ejecutivo y celebraciones."
+>
+  <Nav current="reserva" />
+
+  <main id="contenido">
+    <section class="rh" data-res-hero aria-labelledby="res-title">
+      <div class="rh__sticky">
+        <div class="rh__media">
+          <img
+            src="/img/mesa-larga.webp"
+            srcset="/img/mesa-larga-sm.webp 900w, /img/mesa-larga.webp 1536w"
+            sizes="100vw"
+            alt=""
+            fetchpriority="high"
+            data-rh-img
+          />
+        </div>
+        <div class="rh__shade" aria-hidden="true"></div>
+        <div class="wrap rh__copy" data-rh-copy>
+          <span class="eyebrow">Reservas</span>
+          <h1 id="res-title" class="rh__title">
+            Tu mesa
+            <br />
+            en la casona
+          </h1>
+          <p class="rh__sub">Elige el día, la hora y cuántos vienen. Nosotros nos encargamos del resto.</p>
+          <ul class="rh__facts">
+            <li><Icon name="clock" size={18} /> Mié a sáb, 12:30 a 23:00</li>
+            <li><Icon name="clock" size={18} /> Dom y festivos, 12:30 a 18:00</li>
+            <li><Icon name="map-pin" size={18} /> Av. Julio Silva 597, Olivar</li>
+          </ul>
+          <a class="btn btn--primary" href="#reservar">
+            Elegir fecha
+            <Icon name="arrow-down" size={18} />
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="rs" id="reservar" aria-labelledby="rs-t">
+      <div class="wrap rs__grid">
+        <div class="rs__info">
+          <span class="eyebrow" data-reveal>Cómo funciona</span>
+          <h2 id="rs-t" data-reveal style="--d:80ms">Reservar toma menos de un minuto</h2>
+          <ol class="rs__pasos">
+            {
+              pasos.map((p, i) => (
+                <li data-reveal style={`--d:${120 + i * 80}ms`}>
+                  <span>{p.n}</span>
+                  <div>
+                    <h3>{p.t}</h3>
+                    <p>{p.d}</p>
+                  </div>
+                </li>
+              ))
+            }
+          </ol>
+
+          <div class="rs__cards">
+            <a class="rs__card" href={links.whatsapp} target="_blank" rel="noopener" data-reveal>
+              <Icon name="champagne" size={24} />
+              <div>
+                <h3>¿Grupo grande o celebración?</h3>
+                <p>Menús especiales y cenas temáticas. Cotiza por WhatsApp.</p>
+              </div>
+              <Icon name="arrow-up-right" size={18} class="rs__go" />
+            </a>
+            <a class="rs__card" href={links.whatsapp} target="_blank" rel="noopener" data-reveal style="--d:80ms">
+              <Icon name="whatsapp-logo" size={24} />
+              <div>
+                <h3>Retiro en local</h3>
+                <p>Pide por WhatsApp y retira en la casona.</p>
+              </div>
+              <Icon name="arrow-up-right" size={18} class="rs__go" />
+            </a>
+          </div>
+        </div>
+
+        <div class="rs__widget" data-reveal>
+          <div class="rs__frame" data-frame>
+            <div class="rs__skeleton" aria-hidden="true">
+              <i class="sk sk--steps"></i>
+              <div class="sk-row"><i class="sk sk--field"></i><i class="sk sk--field"></i></div>
+              <i class="sk sk--label"></i>
+              <i class="sk sk--cal"></i>
+              <i class="sk sk--label"></i>
+              <i class="sk sk--field-wide"></i>
+              <i class="sk sk--btn"></i>
+            </div>
+            <iframe
+              src={widget}
+              title="Reserva tu mesa en Casa Olivo con Tableo"
+              loading="lazy"
+              data-tableo></iframe>
+          </div>
+          <p class="rs__alt">
+            ¿No carga el formulario?
+            <a href={links.tableo} target="_blank" rel="noopener">
+              Reserva directo en Tableo
+              <Icon name="arrow-up-right" size={14} />
+            </a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq" aria-labelledby="faq-t">
+      <div class="wrap faq__grid">
+        <div>
+          <span class="eyebrow" data-reveal>Preguntas frecuentes</span>
+          <h2 id="faq-t" data-reveal style="--d:80ms">Antes de venir</h2>
+          <dl class="faq__horario" data-reveal style="--d:160ms">
+            {
+              horario.map((h) => (
+                <div class:list={{ closed: h.horas === 'Cerrado' }}>
+                  <dt>{h.dias}</dt>
+                  <dd>{h.horas}</dd>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+        <div class="faq__list">
+          {
+            faqs.map((f, i) => (
+              <details data-reveal style={`--d:${i * 60}ms`}>
+                <summary>
+                  {f.q}
+                  <i aria-hidden="true" />
+                </summary>
+                <p>{f.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<script>
+  import '../scripts/scrollfx';
+
+  const clamp = (x: number, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Portada: la cámara avanza por la mesa larga hacia la ventana
+  const hero = document.querySelector<HTMLElement>('[data-res-hero]')!;
+  const img = hero.querySelector<HTMLElement>('[data-rh-img]')!;
+  const copy = hero.querySelector<HTMLElement>('[data-rh-copy]')!;
+  let ticking = false;
+  function frame() {
+    ticking = false;
+    const p = clamp(-hero.getBoundingClientRect().top / (hero.offsetHeight - window.innerHeight));
+    if (!reduce) {
+      img.style.transform = `scale(${(1.05 + p * 0.45).toFixed(4)})`;
+      copy.style.transform = `translate3d(0, ${(-p * 60).toFixed(1)}px, 0)`;
+    }
+    copy.style.opacity = String(1 - clamp((p - 0.4) / 0.5));
+  }
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(frame);
+      }
+    },
+    { passive: true },
+  );
+  frame();
+
+  // Esqueleto hasta que el widget pinte
+  const frameBox = document.querySelector<HTMLElement>('[data-frame]')!;
+  const iframe = document.querySelector<HTMLIFrameElement>('[data-tableo]')!;
+  iframe.addEventListener('load', () => frameBox.classList.add('is-ready'), { once: true });
+
+  // Una sola pregunta abierta a la vez
+  const items = [...document.querySelectorAll<HTMLDetailsElement>('.faq details')];
+  items.forEach((d) =>
+    d.addEventListener('toggle', () => {
+      if (d.open) items.forEach((o) => o !== d && (o.open = false));
+    }),
+  );
+</script>
+
+<style>
+  /* Portada */
+  .rh {
+    position: relative;
+    height: 150vh;
+  }
+  .rh__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+  }
+  .rh__media,
+  .rh__shade {
+    position: absolute;
+    inset: 0;
+  }
+  .rh__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 30%;
+    transform-origin: 50% 22%;
+    will-change: transform;
+  }
+  .rh__shade {
+    background:
+      linear-gradient(0deg, rgba(19, 18, 9, 0.96) 0%, rgba(19, 18, 9, 0.7) 40%, rgba(19, 18, 9, 0.2) 100%),
+      linear-gradient(90deg, rgba(19, 18, 9, 0.6) 0%, transparent 60%);
+  }
+  .rh__copy {
+    position: absolute;
+    inset: auto 0 var(--s-800);
+    will-change: transform, opacity;
+  }
+  .rh__copy > * + * {
+    margin-top: var(--s-300);
+  }
+  .rh__title {
+    max-width: 680px;
+    font-size: 3rem;
+    line-height: 1;
+    background: linear-gradient(90deg, #ffffff 0%, #c9bfae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-bottom: 0.08em;
+  }
+  .rh__sub {
+    max-width: 44ch;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--ink-soft);
+  }
+  .rh__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-75);
+    margin-block: var(--s-300) 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rh__facts li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-75);
+    padding: var(--s-75) var(--s-100);
+    border-radius: var(--r-full);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    background: rgba(19, 18, 9, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .rh__facts .icon {
+    color: var(--terracota);
+  }
+  @media (min-width: 768px) {
+    .rh__title {
+      font-size: 6rem;
+    }
+  }
+
+  /* Reserva */
+  .rs {
+    padding-block: var(--s-800) var(--s-900);
+    scroll-margin-top: var(--s-800);
+  }
+  .rs__grid {
+    display: grid;
+    gap: var(--s-700);
+  }
+  .rs__info > h2 {
+    margin-top: var(--s-200);
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    max-width: 16ch;
+  }
+  .rs__pasos {
+    margin: var(--s-500) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--s-300);
+  }
+  .rs__pasos li {
+    display: flex;
+    gap: var(--s-200);
+  }
+  .rs__pasos li > span {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--terracota);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.5);
+    font-variant-numeric: tabular-nums;
+  }
+  .rs__pasos h3 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  .rs__pasos p {
+    color: var(--ink-soft);
+  }
+  .rs__cards {
+    display: grid;
+    gap: var(--s-100);
+    margin-top: var(--s-600);
+  }
+  .rs__card {
+    display: flex;
+    align-items: center;
+    gap: var(--s-200);
+    padding: var(--s-300);
+    border-radius: var(--r-2xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    text-decoration: none;
+    transition:
+      transform 500ms var(--ease),
+      box-shadow 300ms var(--ease);
+  }
+  .rs__card:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.5);
+  }
+  .rs__card:active {
+    transform: scale(0.98);
+  }
+  .rs__card > .icon:first-child {
+    color: var(--terracota);
+  }
+  .rs__card div {
+    flex: 1;
+  }
+  .rs__card h3 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  .rs__card p {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+  }
+  .rs__card :global(.rs__go) {
+    color: var(--ink-soft);
+  }
+
+  .rs__frame {
+    position: relative;
+    border-radius: var(--r-3xl);
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 40px 80px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+  }
+  .rs__frame iframe {
+    position: relative;
+    display: block;
+    width: 100%;
+    /* Alto del widget con los horarios desplegados; así nunca hace scroll interno */
+    height: 1100px;
+    border: 0;
+    opacity: 0;
+    transition: opacity 500ms var(--ease);
+  }
+  .rs__frame.is-ready iframe {
+    opacity: 1;
+  }
+  .rs__skeleton {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-200);
+    padding: var(--s-500) var(--s-300);
+    transition: opacity 300ms var(--ease);
+  }
+  .rs__frame.is-ready .rs__skeleton {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sk {
+    display: block;
+    border-radius: var(--r-xl);
+    background: linear-gradient(90deg, #2f291f 0%, #3a3226 50%, #2f291f 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s var(--ease) infinite;
+  }
+  .sk-row {
+    display: flex;
+    gap: var(--s-200);
+  }
+  .sk--steps {
+    height: 48px;
+    width: 60%;
+    align-self: center;
+  }
+  .sk--field {
+    flex: 1;
+    height: 48px;
+  }
+  .sk--label {
+    height: 16px;
+    width: 40%;
+    margin-top: var(--s-100);
+  }
+  .sk--cal {
+    height: 120px;
+  }
+  .sk--field-wide {
+    height: 72px;
+  }
+  .sk--btn {
+    height: 48px;
+    margin-top: var(--s-300);
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+  .rs__alt {
+    margin-top: var(--s-200);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .rs__alt a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-25);
+    font-weight: 600;
+    color: var(--terracota);
+    text-decoration: none;
+  }
+  .rs__alt a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @media (min-width: 1024px) {
+    .rs {
+      padding-block: var(--s-900) 160px;
+    }
+    .rs__grid {
+      grid-template-columns: 1fr 480px;
+      gap: var(--s-900);
+      align-items: start;
+    }
+    .rs__info {
+      position: sticky;
+      top: 120px;
+    }
+    .rs__info > h2 {
+      font-size: 3rem;
+      line-height: 1;
+    }
+  }
+
+  /* Preguntas */
+  .faq {
+    padding-block: var(--s-900);
+    background: var(--bg-2);
+  }
+  .faq__grid {
+    display: grid;
+    gap: var(--s-600);
+  }
+  .faq h2 {
+    margin-top: var(--s-200);
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+  .faq__horario {
+    margin: var(--s-500) 0 0;
+    max-width: 360px;
+  }
+  .faq__horario div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-200);
+    padding-block: var(--s-100);
+    border-top: 1px solid var(--line);
+  }
+  .faq__horario dt {
+    color: var(--ink-soft);
+  }
+  .faq__horario dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .faq__horario .closed dd {
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+  .faq__list {
+    display: grid;
+    gap: var(--s-100);
+  }
+  .faq details {
+    border-radius: var(--r-2xl);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    transition: box-shadow 300ms var(--ease);
+  }
+  .faq details[open] {
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 68, 0.45);
+  }
+  .faq summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-200);
+    padding: var(--s-300);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+  }
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq summary i {
+    position: relative;
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .faq summary i::before,
+  .faq summary i::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 14px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--terracota);
+    transition: transform 500ms var(--ease);
+  }
+  .faq summary i::after {
+    transform: rotate(90deg);
+  }
+  .faq details[open] summary i::after {
+    transform: rotate(0deg);
+  }
+  .faq details p {
+    padding: 0 var(--s-300) var(--s-300);
+    max-width: 60ch;
+    color: var(--ink-soft);
+  }
+  @media (min-width: 1024px) {
+    .faq {
+      padding-block: 160px;
+    }
+    .faq__grid {
+      grid-template-columns: 1fr 1.4fr;
+      gap: var(--s-900);
+    }
+    .faq h2 {
+      font-size: 3rem;
+      line-height: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sk {
+      animation: none;
+    }
+  }
+</style>
