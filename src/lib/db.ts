@@ -27,6 +27,9 @@ const SCHEMA = [
     ok boolean not null,
     at timestamptz not null default now()
   )`,
+  // Intentos por dirección IP, para frenar ataques que prueban muchos correos
+  `alter table login_attempts add column if not exists ip text`,
+  `create index if not exists login_attempts_recent on login_attempts (at)`,
   // Colecciones con varios elementos: platos, shows, escenas…
   `create table if not exists entries (
     id serial primary key,

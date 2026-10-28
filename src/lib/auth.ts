@@ -10,10 +10,20 @@ import { query, one } from './db';
 
 const scrypt = promisify(_scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 
-export const COOKIE = 'co_session';
-const SESSION_DAYS = 30;
-const MAX_FAILS = 5;
+// En producción el prefijo __Secure- obliga al navegador a enviarla solo por https
+export const COOKIE = import.meta.env.PROD ? '__Secure-co_session' : 'co_session';
+const COOKIE_PATH = '/admin';
+const SESSION_DAYS = 7;
+const MAX_FAILS = 5; // por correo
+const MAX_FAILS_IP = 20; // por dirección IP, sumando todos los correos
 const WINDOW_MIN = 15;
+
+// Hash de referencia: si el correo no existe se verifica igual, para que la
+// demora no revele qué correos tienen cuenta
+const DUMMY = 'scrypt$AAAAAAAAAAAAAAAAAAAAAA==$' + Buffer.alloc(64).toString('base64');
+
+// Contraseñas que se adivinan en segundos
+const COMUNES = ['1234567890', '0123456789', '1111111111', 'qwertyuiop', 'contraseña', 'contrasena', 'password', 'casaolivo', 'restaurante', 'olivar'];
 
 export type User = { id: number; email: string; name: string; role: string };
 
@@ -33,8 +43,14 @@ async function verifyPassword(pw: string, stored: string) {
 
 const sha = (t: string) => createHash('sha256').update(t).digest('hex');
 
-export function validatePassword(pw: string) {
+export function validatePassword(pw: string, email = '') {
   if (pw.length < 10) return 'La contraseña debe tener al menos 10 caracteres.';
+  if (pw.length > 200) return 'La contraseña es demasiado larga.';
+  const p = pw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const usuario = email.split('@')[0]?.toLowerCase();
+  if (new Set(p).size < 4 || COMUNES.some((c) => p.includes(c)) || (usuario && usuario.length > 3 && p.includes(usuario))) {
+    return 'Esa contraseña es muy fácil de adivinar. Usa una frase con palabras que no tengan que ver con el restaurante ni con tu correo.';
+  }
   return null;
 }
 
@@ -54,23 +70,38 @@ export async function createUser(email: string, name: string, password: string, 
   return row!;
 }
 
+/** Confirma la contraseña actual de alguien que ya tiene sesión (para acciones delicadas). */
+export async function checkPassword(userId: number, password: string) {
+  const row = await one<{ password_hash: string }>('select password_hash from users where id = $1', [userId]);
+  return verifyPassword(password.slice(0, 200), row?.password_hash ?? DUMMY).then((ok) => ok && !!row);
+}
+
 export async function setPassword(userId: number, password: string) {
   await query('update users set password_hash = $1 where id = $2', [await hashPassword(password), userId]);
   // Cerrar las demás sesiones al cambiar la contraseña
   await query('delete from sessions where user_id = $1', [userId]);
 }
 
-export async function login(email: string, password: string): Promise<{ user?: User; error?: string }> {
-  const e = email.trim().toLowerCase();
-  const fails = await one<{ n: string }>(
-    `select count(*) as n from login_attempts where email = $1 and not ok and at > now() - interval '${WINDOW_MIN} minutes'`,
-    [e],
+export async function login(email: string, password: string, ip = ''): Promise<{ user?: User; error?: string }> {
+  const e = email.trim().toLowerCase().slice(0, 200);
+  const fails = await one<{ porCorreo: string; porIp: string }>(
+    `select count(*) filter (where email = $1) as "porCorreo", count(*) filter (where ip = $2) as "porIp"
+     from login_attempts where not ok and at > now() - interval '${WINDOW_MIN} minutes'`,
+    [e, ip],
   );
-  if (Number(fails?.n ?? 0) >= MAX_FAILS) return { error: `Demasiados intentos fallidos. Espera ${WINDOW_MIN} minutos e inténtalo otra vez.` };
+  if (Number(fails?.porCorreo ?? 0) >= MAX_FAILS || (ip && Number(fails?.porIp ?? 0) >= MAX_FAILS_IP)) {
+    return { error: `Demasiados intentos fallidos. Espera ${WINDOW_MIN} minutos e inténtalo otra vez.` };
+  }
 
   const row = await one<User & { password_hash: string }>('select id, email, name, role, password_hash from users where email = $1', [e]);
-  const ok = !!row && (await verifyPassword(password, row.password_hash));
-  await query('insert into login_attempts (email, ok) values ($1, $2)', [e, ok]);
+  const valid = await verifyPassword(password.slice(0, 200), row?.password_hash ?? DUMMY);
+  const ok = !!row && valid;
+  await query('insert into login_attempts (email, ok, ip) values ($1, $2, $3)', [e, ok, ip || null]);
+  // Limpieza: los intentos y sesiones viejas no se guardan para siempre
+  if (Math.random() < 0.05) {
+    await query(`delete from login_attempts where at < now() - interval '30 days'`);
+    await query('delete from sessions where expires_at < now()');
+  }
   if (!ok) return { error: 'El correo o la contraseña no coinciden.' };
   return { user: { id: row!.id, email: row!.email, name: row!.name, role: row!.role } };
 }
@@ -80,9 +111,9 @@ export async function startSession(cookies: AstroCookies, userId: number) {
   const expires = new Date(Date.now() + SESSION_DAYS * 864e5);
   await query('insert into sessions (token_hash, user_id, expires_at) values ($1, $2, $3)', [sha(token), userId, expires.toISOString()]);
   cookies.set(COOKIE, token, {
-    path: '/',
+    path: COOKIE_PATH,
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
     secure: import.meta.env.PROD,
     expires,
   });
@@ -91,7 +122,8 @@ export async function startSession(cookies: AstroCookies, userId: number) {
 export async function endSession(cookies: AstroCookies) {
   const token = cookies.get(COOKIE)?.value;
   if (token) await query('delete from sessions where token_hash = $1', [sha(token)]);
-  cookies.delete(COOKIE, { path: '/' });
+  cookies.delete(COOKIE, { path: COOKIE_PATH });
+  cookies.delete('co_session', { path: '/' }); // cookie de versiones anteriores
 }
 
 export async function currentUser(cookies: AstroCookies): Promise<User | undefined> {

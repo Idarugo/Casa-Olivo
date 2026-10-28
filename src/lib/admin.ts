@@ -21,9 +21,18 @@ export function publicHref(key: string) {
   return map[key];
 }
 
-/** Rechaza peticiones que no vienen del propio sitio. */
+/**
+  Rechaza peticiones que no vienen del propio sitio. Los navegadores siempre
+  envían Origin o Sec-Fetch-Site en un POST; si no viene ninguno, no se acepta.
+*/
 export function sameOrigin(request: Request) {
   const origin = request.headers.get('origin');
-  if (!origin) return true;
-  return new URL(origin).host === new URL(request.url).host;
+  if (origin) {
+    try {
+      return new URL(origin).host === new URL(request.url).host;
+    } catch {
+      return false;
+    }
+  }
+  return request.headers.get('sec-fetch-site') === 'same-origin';
 }

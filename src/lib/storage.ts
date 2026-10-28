@@ -7,7 +7,7 @@ import sharp from 'sharp';
 import { randomBytes } from 'node:crypto';
 import type { Image } from './schema';
 
-const MAX_BYTES = 12 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
 const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic', 'image/heif'];
 
 export class UploadError extends Error {}
@@ -30,12 +30,13 @@ async function store(path: string, data: Buffer): Promise<string> {
 
 export async function saveImage(file: File): Promise<Image & { width: number; height: number }> {
   if (!TYPES.includes(file.type)) throw new UploadError('Formato no soportado. Sube una foto JPG, PNG, WebP o AVIF.');
-  if (file.size > MAX_BYTES) throw new UploadError('La foto pesa más de 12 MB. Expórtala en un tamaño menor.');
+  if (file.size > MAX_BYTES) throw new UploadError('La foto pesa más de 8 MB. Expórtala en un tamaño menor.');
 
   const input = Buffer.from(await file.arrayBuffer());
   let base: sharp.Sharp;
   try {
-    base = sharp(input, { failOn: 'error' }).rotate();
+    // Límite de píxeles: una imagen «bomba» que se infla al abrirla se rechaza
+    base = sharp(input, { failOn: 'error', limitInputPixels: 60_000_000 }).rotate();
     await base.metadata();
   } catch {
     throw new UploadError('No pudimos leer la foto. Prueba con otro archivo.');

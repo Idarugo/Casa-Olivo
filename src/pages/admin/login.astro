@@ -15,7 +15,7 @@ let email = '';
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   email = String(form.get('email') ?? '');
-  const res = await login(email, String(form.get('password') ?? ''));
+  const res = await login(email, String(form.get('password') ?? ''), Astro.clientAddress);
   if (res.user) {
     await startSession(Astro.cookies, res.user.id);
     await log(res.user, 'login');

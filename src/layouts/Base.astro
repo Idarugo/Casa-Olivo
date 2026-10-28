@@ -19,6 +19,8 @@ const origin = sitio.url_sitio ? new URL(sitio.url_sitio).origin : Astro.url.ori
 const canonical = new URL(Astro.url.pathname, origin);
 const og = new URL(sitio.og_imagen?.src ?? '/img/og.jpg', origin);
 const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
+// JSON dentro de <script>: se escapan los caracteres que podrían cerrar la etiqueta
+const jsonLd = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 ---
 
 <!doctype html>
@@ -52,7 +54,7 @@ const tel = '+' + String(g.whatsapp ?? '').replace(/\D/g, '');
 
     <script
       type="application/ld+json"
-      set:html={JSON.stringify({
+      set:html={jsonLd({
         '@context': 'https://schema.org',
         '@type': 'Restaurant',
         name: 'Casa Olivo Restaurante',

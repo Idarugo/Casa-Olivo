@@ -2,7 +2,7 @@
 import Admin from '../../layouts/Admin.astro';
 import Icon from '../../components/Icon.astro';
 import { query, one } from '../../lib/db';
-import { createUser, setPassword, validatePassword } from '../../lib/auth';
+import { createUser, setPassword, validatePassword, checkPassword } from '../../lib/auth';
 import { roles, roleKeys, isRole } from '../../lib/permissions';
 import { log } from '../../lib/audit';
 
@@ -28,7 +28,7 @@ if (Astro.request.method === 'POST') {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevo.email)) error = 'Escribe un correo válido.';
     else if (!isRole(nuevo.role)) error = 'Elige un rol.';
     else if ((await query('select 1 from users where email = $1', [nuevo.email])).length) error = 'Ya existe un usuario con ese correo.';
-    else error = validatePassword(pw) ?? '';
+    else error = validatePassword(pw, nuevo.email) ?? '';
     if (!error) {
       const u = await createUser(nuevo.email, nuevo.name, pw, nuevo.role);
       await log(me, 'user_create', { title: u.name, after: { email: u.email, role: u.role } });
@@ -53,7 +53,8 @@ if (Astro.request.method === 'POST') {
   if (action === 'password') {
     errorForm = 'password';
     const pw = String(form.get('password') ?? '');
-    error = validatePassword(pw) ?? (pw !== String(form.get('confirm') ?? '') ? 'Las contraseñas no coinciden.' : '');
+    if (!(await checkPassword(me.id, String(form.get('current') ?? '')))) error = 'Tu contraseña actual no es correcta.';
+    else error = validatePassword(pw, me.email) ?? (pw !== String(form.get('confirm') ?? '') ? 'Las contraseñas no coinciden.' : '');
     if (!error) {
       await setPassword(me.id, pw);
       await log(me, 'password');
@@ -226,6 +227,10 @@ const initials = (n: string) =>
           )
         }
         <input type="email" name="username" value={me.email} autocomplete="username" hidden />
+        <div class="field">
+          <label class="field__label" for="p-current">Contraseña actual</label>
+          <input class="input" id="p-current" name="current" type="password" autocomplete="current-password" required />
+        </div>
         <div class="field">
           <label class="field__label" for="p-new">Nueva contraseña</label>
           <input class="input" id="p-new" name="password" type="password" minlength="10" autocomplete="new-password" required />

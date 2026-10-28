@@ -19,7 +19,7 @@ if (Astro.request.method === 'POST' && keyConfigured) {
   if (!checkSetupKey(String(form.get('key') ?? ''))) error = 'La clave de instalación no coincide con SETUP_KEY.';
   else if (!values.name) error = 'Escribe tu nombre.';
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) error = 'Escribe un correo válido.';
-  else error = validatePassword(password) ?? '';
+  else error = validatePassword(password, values.email) ?? '';
   if (!error) {
     const user = await createUser(values.email, values.name, password, 'admin');
     await startSession(Astro.cookies, user.id);
