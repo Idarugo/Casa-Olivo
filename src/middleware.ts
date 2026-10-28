@@ -29,6 +29,7 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
     if (ctx.request.method === 'GET' && res.status === 200 && !res.headers.has('Cache-Control')) {
       // La CDN sirve la misma versión unos segundos; los cambios del panel aparecen casi de inmediato
       res.headers.set('Cache-Control', 'public, max-age=0, s-maxage=5, stale-while-revalidate=30');
+      res.headers.set('Vercel-CDN-Cache-Control', 'max-age=5, stale-while-revalidate=30');
     }
     return res;
   }
