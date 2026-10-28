@@ -39,7 +39,8 @@ let n = 0;
     display: block;
   }
   .tagline__word {
-    color: var(--ink-mute);
+    /* Apagada pero legible: contraste 3:1 para texto grande */
+    color: rgba(240, 231, 215, 0.42);
     transition: color 600ms var(--ease);
   }
   .tagline__word.is-on {

@@ -126,9 +126,8 @@ const pasos = [
               <i class="sk sk--btn"></i>
             </div>
             <iframe
-              src={widget}
+              data-src={widget}
               title="Reserva tu mesa en Casa Olivo con Tableo"
-              loading="lazy"
               data-tableo></iframe>
           </div>
           <p class="rs__alt">
@@ -214,6 +213,25 @@ const pasos = [
   const frameBox = document.querySelector<HTMLElement>('[data-frame]')!;
   const iframe = document.querySelector<HTMLIFrameElement>('[data-tableo]')!;
   iframe.addEventListener('load', () => frameBox.classList.add('is-ready'), { once: true });
+
+  // El widget de Tableo trae sus propias fuentes y rastreadores: se carga solo
+  // cuando la persona se acerca al formulario, no al abrir la página
+  const cargar = () => {
+    if (!iframe.src) iframe.src = iframe.dataset.src!;
+  };
+  if (location.hash === '#reservar' || !('IntersectionObserver' in window)) cargar();
+  else {
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          cargar();
+          io.disconnect();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    io.observe(frameBox);
+  }
 
   // Una sola pregunta abierta a la vez
   const items = [...document.querySelectorAll<HTMLDetailsElement>('.faq details')];

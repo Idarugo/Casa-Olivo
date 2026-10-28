@@ -7,6 +7,8 @@ export default defineConfig({
   // El contenido vive en la base de datos y se edita desde /admin
   output: 'server',
   adapter: vercel(),
+  // El CSS es poco: va dentro de cada página y no bloquea el primer pintado
+  build: { inlineStylesheets: 'always' },
   security: {
     // Formularios del panel: solo se aceptan si vienen del propio sitio
     checkOrigin: true,
@@ -17,7 +19,7 @@ export default defineConfig({
       directives: [
         "default-src 'self'",
         "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
-        "font-src 'self' https://fonts.gstatic.com",
+        "font-src 'self'",
         "connect-src 'self'",
         'frame-src https://app.tableo.com',
         "media-src 'self'",
@@ -27,7 +29,7 @@ export default defineConfig({
         'upgrade-insecure-requests',
       ],
       styleDirective: {
-        resources: ["'self'", 'https://fonts.googleapis.com', { resource: "'unsafe-inline'", kind: 'attribute' }],
+        resources: ["'self'", { resource: "'unsafe-inline'", kind: 'attribute' }],
       },
       scriptDirective: {
         resources: ["'self'"],

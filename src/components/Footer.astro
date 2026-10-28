@@ -7,7 +7,7 @@ const { links, general } = Astro.locals.content!;
 
 <footer class="footer">
   <div class="wrap footer__inner">
-    <img src="/img/logo-crema.webp" alt="Casa Olivo Restaurante" width="600" height="247" loading="lazy" />
+    <img src="/img/logo-crema-sm.webp" srcset="/img/logo-crema-sm.webp 240w, /img/logo-crema.webp 600w" sizes="160px" alt="Casa Olivo Restaurante" width="240" height="99" loading="lazy" />
     <div class="footer__cols">
       <a href={links.instagram} target="_blank" rel="noopener">
         <Icon name="instagram-logo" size={20} />

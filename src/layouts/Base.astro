@@ -1,4 +1,5 @@
 ---
+import manrope from '../assets/fonts/manrope-latin.woff2?url';
 import '../styles/global.css';
 import { settingsSeed } from '../lib/seed';
 import Aviso from '../components/Aviso.astro';
@@ -43,14 +44,7 @@ const jsonLd = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c').replac
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={og} />
     <meta name="twitter:card" content="summary_large_image" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="preload" as="image" href="/img/casona-noche.webp" fetchpriority="high" />
+    <link rel="preload" as="font" type="font/woff2" href={manrope} crossorigin />
 
     <script
       type="application/ld+json"

@@ -1,4 +1,5 @@
 ---
+import manrope from '../assets/fonts/manrope-latin.woff2?url';
 import '../styles/global.css';
 import '../styles/admin.css';
 import Icon from '../components/Icon.astro';
@@ -55,23 +56,21 @@ const adminNav = [
     <title>{title} · Panel Casa Olivo</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="theme-color" content="#0e0d07" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="font" type="font/woff2" href={manrope} crossorigin />
   </head>
   <body class="admin" data-admin>
     <a class="skip" href="#contenido">Saltar al contenido</a>
 
     <header class="topbar">
       <button class="icon-btn" type="button" data-menu aria-label="Abrir menú"><Icon name="list" size={22} /></button>
-      <a href="/admin"><img src="/img/logo-crema.webp" alt="Panel Casa Olivo" width="600" height="247" /></a>
+      <a href="/admin"><img src="/img/logo-crema-sm.webp" alt="Panel Casa Olivo" width="240" height="99" /></a>
       <button class="icon-btn" type="button" data-palette-open aria-label="Buscar" style="margin-left:auto"><Icon name="magnifying-glass" size={20} /></button>
     </header>
     <div class="scrim" data-scrim></div>
 
     <aside class="side" aria-label="Menú del panel">
       <a class="side__brand" href="/admin">
-        <img src="/img/logo-crema.webp" alt="Casa Olivo" width="600" height="247" />
+        <img src="/img/logo-crema-sm.webp" alt="Casa Olivo" width="240" height="99" />
         <span class="side__badge">Panel</span>
       </a>
       <button class="side__search" type="button" data-palette-open>
